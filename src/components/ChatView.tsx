@@ -1,0 +1,801 @@
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { KeyboardOverlay } from "./KeyboardOverlay";
+import { VoiceRecordingOverlay } from "./VoiceRecordingOverlay";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Circle,
+  RefreshCw,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  HardDrive,
+  Sparkles,
+  CheckCircle2,
+  Mic,
+  Image as ImageIcon,
+  Edit2,
+  SkipForward,
+} from "lucide-react";
+import { VideoTemplate } from "../types";
+
+interface ProposalData {
+  theme: string;
+  suitability: string;
+  proposal1: string;
+  proposal2: string;
+  tags: string[];
+}
+
+interface ChatViewProps {
+  prompt: string;
+  attachedTemplate: VideoTemplate | null;
+  selectedRatio: string;
+  selectedDuration: string;
+  onBack: () => void;
+  onMaterialModalOpen: () => void;
+  uploadedMaterials: string[];
+  selectedKeyframes?: VideoTemplate[];
+  onRemoveKeyframe?: (id: string) => void;
+  onChooseActiveSchema: (schemaNum: number, finalScript: string) => void;
+  onKeyframeModalOpen: () => void;
+  onGoToRenderingBox: () => void;
+}
+
+export default function ChatView({
+  prompt,
+  attachedTemplate,
+  selectedRatio,
+  selectedDuration,
+  onBack,
+  onMaterialModalOpen,
+  uploadedMaterials,
+  selectedKeyframes = [],
+  onRemoveKeyframe,
+  onChooseActiveSchema,
+  onKeyframeModalOpen,
+  onGoToRenderingBox,
+}: ChatViewProps) {
+  // AI Script Synthesis States
+  const [isGenerating, setIsGenerating] = useState(true);
+  const [activeTab, setActiveTab] = useState<1 | 2>(1);
+  const [isDescExpanded, setIsDescExpanded] = useState(true);
+  const [isResourceExpanded, setIsResourceExpanded] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [userFinalMessage, setUserFinalMessage] = useState<string | null>(null);
+  const [showFinalResponse, setShowFinalResponse] = useState(false);
+  const [isEditingProposal, setIsEditingProposal] = useState(false);
+
+  interface ChatTurn {
+    id: string;
+    sender: "user" | "ai";
+    text?: string;
+    imageUrl?: string;
+    imageUrls?: string[];
+    isAiThinking?: boolean;
+  }
+
+  const [extraTurns, setExtraTurns] = useState<ChatTurn[]>([]);
+
+  const [aiResult, setAiResult] = useState<ProposalData>({
+    theme: "展现华康医药品牌特色",
+    suitability: "适合首次对外介绍公司、官网 / 招商 / 展会使用",
+    proposal1:
+      "【画外音：在这条漫长而精彩的路上，每一次探索都源于内心的热爱。】\n【画面：朝阳跃过城市地平线，镜头温暖移近工作台】\n【脚本详情】：我们追求卓越，执着于每一个细节的雕琢。针对第一视角采访式温情还原，结合精修画质，打动每一个潜在加盟或合作商户。。，我们摒弃传统的沉重框架，融入智慧高能交互思维。我们的理念是，用科技重写生活质感，在每一公里、每一个像素点，为您兑现精益求精。这里没有繁复套路，只有真心诚意的技术与卓越服务体验。",
+    proposal2:
+      "健康没有多余路径，华康医药以守护大众生命旅程为最高纲领。科技点亮人道，品质开创新纪元。华康医药研发团队，致力于智慧型复合药机研制。每一粒药片、每次装载、每道严谨工段检验，是对健康生命的最高敬畏。守护千家万户的健康，就在现在！",
+    tags: ["#公司介绍", "#自定义", "#业务推广"],
+  });
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(scrollToBottom, 50);
+    return () => clearTimeout(timer);
+  }, [isGenerating, userFinalMessage, showFinalResponse, aiResult, extraTurns]);
+
+  useEffect(() => {
+    if (isEditingProposal && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [isEditingProposal, aiResult.proposal1]);
+
+  const [localFile1, setLocalFile1] = useState<string | null>(null);
+  const [localFile2, setLocalFile2] = useState<string | null>(null);
+  const [localFile3, setLocalFile3] = useState<string | null>(null);
+  const [stagedImages, setStagedImages] = useState<string[]>([]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []) as File[];
+    if (files.length === 0) return;
+    const urls = files.map(file => URL.createObjectURL(file));
+    setStagedImages(prev => [...prev, ...urls]);
+
+    if (e.target) e.target.value = "";
+  };
+
+  const handleSingleUpload = (
+    setter: React.Dispatch<React.SetStateAction<string | null>>,
+  ) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (e: any) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        setter(URL.createObjectURL(file));
+      }
+    };
+    input.click();
+  };
+
+  const handleVoiceStart = () => {
+    setIsRecording(true);
+    if (navigator.vibrate) navigator.vibrate(50);
+  };
+
+  const handleVoiceEnd = () => {
+    if (isRecording) {
+      setIsRecording(false);
+    }
+  };
+
+  const handleVoiceCancel = () => {
+    setIsRecording(false);
+  };
+
+  // Call backend on startup to generate personalized scripts!
+  useEffect(() => {
+    let active = true;
+    const abortController = new AbortController();
+
+    const fetchScript = async () => {
+      const startTime = Date.now();
+
+      try {
+        const response = await fetch("/api/gemini/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+          signal: abortController.signal,
+        });
+        if (response.ok && active) {
+          const data = await response.json();
+          setAiResult(data);
+        }
+      } catch (err) {
+        // Silently fallback if timeout or error
+      } finally {
+        if (active) {
+          const elapsed = Date.now() - startTime;
+          const remaining = Math.max(0, 4000 - elapsed);
+          setTimeout(() => {
+            setIsGenerating(false);
+          }, remaining);
+        }
+      }
+    };
+
+    // Cap the entire fetch process at 3.9 seconds so it triggers finally and finishes by 4s.
+    const overallTimeoutId = setTimeout(() => abortController.abort(), 3900);
+
+    fetchScript().finally(() => clearTimeout(overallTimeoutId));
+    return () => {
+      active = false;
+      clearTimeout(overallTimeoutId);
+      abortController.abort();
+    };
+  }, [prompt]);
+
+  const handleRefresh = async () => {
+    setIsGenerating(true);
+    const abortController = new AbortController();
+    const startTime = Date.now();
+    const overallTimeoutId = setTimeout(() => abortController.abort(), 3900);
+
+    try {
+      const response = await fetch("/api/gemini/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt + "，请换一个侧重方向和不同亮点词汇",
+        }),
+        signal: abortController.signal,
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAiResult(data);
+      }
+    } catch (err) {
+      // Silently fallback on timeout or error
+    } finally {
+      clearTimeout(overallTimeoutId);
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 4000 - elapsed);
+      setTimeout(() => {
+        setIsGenerating(false);
+      }, remaining);
+    }
+  };
+
+  const isMaterialComplete = uploadedMaterials.length >= 1;
+  const hasUploadedContent = !!(
+    localFile1 ||
+    localFile2 ||
+    localFile3 ||
+    selectedKeyframes.length > 0 ||
+    uploadedMaterials.length > 0
+  );
+
+  const handleSkip = () => {
+    setUserFinalMessage(null);
+    setShowFinalResponse(true);
+  };
+
+  const handleSendMessage = () => {
+    if (inputText.trim() || stagedImages.length > 0) {
+      const text = inputText;
+      const images = [...stagedImages];
+      setInputText("");
+      setStagedImages([]);
+      setIsKeyboardOpen(false);
+
+      // Append user text and optional images turn
+      const userTurnId = `user_${Date.now()}`;
+      setExtraTurns(prev => [
+        ...prev, 
+        { 
+          id: userTurnId, 
+          sender: "user", 
+          text: text || undefined, 
+          imageUrl: images.length > 0 ? images[0] : undefined,
+          imageUrls: images.length > 1 ? images : undefined
+        }
+      ]);
+
+      // Append AI thinking / processing turn
+      const aiThinkingId = `ai_thinking_${Date.now()}`;
+      setTimeout(() => {
+        setExtraTurns(prev => [...prev, { id: aiThinkingId, sender: "ai", isAiThinking: true }]);
+
+        setTimeout(() => {
+          setExtraTurns(prev => {
+            const filtered = prev.filter(t => t.id !== aiThinkingId);
+            return [
+              ...filtered,
+              {
+                id: `ai_${Date.now()}`,
+                sender: "ai",
+                text: "素材信息已齐全，正在排队等待自动生成"
+              }
+            ];
+          });
+        }, 1500);
+      }, 400);
+    }
+  };
+
+  const hasSubsequentMessages = showFinalResponse || extraTurns.length > 0 || userFinalMessage !== null;
+
+  return (
+    <div
+      id="chat-assistant-screen"
+      className="h-full w-full bg-[#0c1017] z-20 flex flex-col justify-between overflow-hidden font-sans relative"
+    >
+      {/* 1. WeChat Header Title section with AI subtitle sub-line */}
+      <div className="bg-neutral-900 shrink-0 pt-11 pb-3 px-4 border-b border-neutral-800 flex items-center justify-between shadow-3xs relative">
+        <button
+          id="chat-back"
+          onClick={onBack}
+          className="p-1 -ml-1.5 mr-1 hover:bg-neutral-800 active:scale-90 rounded-full transition-all inline-flex items-center justify-center cursor-pointer text-white"
+        >
+          <ChevronLeft size={18} className="stroke-[2.5]" />
+        </button>
+
+        <div className="overflow-hidden flex-1 flex items-center">
+          <span className="text-[15px] font-black tracking-wide text-white truncate">
+            {attachedTemplate ? attachedTemplate.title : "生成视频"}
+          </span>
+        </div>
+
+        {/* WeChat Standard capsule keys ... o */}
+        <div className="border rounded-full px-3 py-1 flex items-center gap-2.5 shadow-3xs scale-95 translate-y-[2px] border-neutral-700 bg-neutral-800 text-white shrink-0">
+          <MoreHorizontal
+            size={14}
+            className="cursor-pointer hover:opacity-75"
+          />
+          <div className="w-[1px] h-3 bg-neutral-600" />
+          <div className="relative flex items-center justify-center text-inherit">
+            <Circle size={8} className="fill-current stroke-current" />
+            <Circle
+              size={12}
+              className="absolute stroke-current stroke-[1.2]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Scrollable Body containing Chat timeline bubble cards */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* 3. AI Reply Assistant or Loader States */}
+        {isGenerating ? (
+          /* "小鹿思考中" Loader State matching Image 7 visual */
+          <div className="flex items-start gap-2 max-w-[85%]">
+            {/* Logo avatar bubble */}
+            <div className="w-8 h-8 shrink-0 rounded-full bg-[#1c1c1e] flex items-center justify-center shadow-3xs border border-[#3a3a3c] overflow-hidden">
+              <img src="/logo2.png" alt="logo" className="w-[85%] h-[85%] object-contain" />
+            </div>
+
+            <div className="bg-[#2c2c2e] px-4 py-3 rounded-2xl rounded-tl-xs shadow-sm border border-[#3a3a3c] flex items-center gap-2.5">
+              <span className="text-[11px] font-bold text-blue-400">
+                小鹿拍拍正在分析
+              </span>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-dot-1" />
+                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-dot-2" />
+                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-dot-3" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Fully structured AI Script Card results as in Image 5 & 6 */
+          <div className="flex items-start gap-2 max-w-[85%]">
+            {/* Bot Profile Avatar */}
+            <div className="w-8 h-8 shrink-0 rounded-full bg-[#1c1c1e] flex items-center justify-center shadow-3xs border border-[#3a3a3c] overflow-hidden">
+              <img src="/logo2.png" alt="logo" className="w-[85%] h-[85%] object-contain" />
+            </div>
+
+            {/* AI Speech container card */}
+            <div className="flex-1 bg-[#2c2c2e] rounded-2xl rounded-tl-xs border border-[#3a3a3c] shadow-sm p-4 space-y-4 text-left">
+              {/* Title descriptions of Proposal */}
+              <div className="space-y-1.5 text-left select-text">
+                <h4 className="text-xs font-black text-white leading-tight">
+                  主题：{aiResult.theme}
+                </h4>
+                <p className="text-[10px] text-gray-400 font-bold">
+                  {aiResult.suitability}
+                </p>
+              </div>
+
+              {/* ACCORDION 2: 素材资源 (Matches Image 5 & 6 grids!) */}
+              {attachedTemplate && (
+                <div className="border border-neutral-600 rounded-xl overflow-hidden shadow-3xs text-left">
+                  <button
+                    onClick={() => setIsResourceExpanded(!isResourceExpanded)}
+                    className="w-full bg-neutral-700/30 hover:bg-neutral-700/50 px-3.5 py-2.5 flex items-center justify-between text-[11px] font-black text-neutral-300 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>素材资源</span>
+                      <span className="text-[8px] md:text-[9px] text-gray-400 font-medium">
+                        建议提供8个以上素材效果更佳
+                      </span>
+                    </div>
+                    {isResourceExpanded ? (
+                      <ChevronUp size={12} />
+                    ) : (
+                      <ChevronDown size={12} />
+                    )}
+                  </button>
+
+                  {isResourceExpanded && (
+                    <div className="p-3.5 bg-neutral-800 border-t border-neutral-600">
+                      <div className="grid grid-cols-3 gap-2 select-none text-center">
+                        {!localFile1 ? (
+                          extraTurns.length === 0 && (
+                            <button
+                              onClick={() => handleSingleUpload(setLocalFile1)}
+                              className="relative aspect-[4/5] w-full border-2 border-dashed border-neutral-700 hover:border-sky-300 bg-neutral-800/50 active:bg-neutral-800 rounded-xl overflow-hidden flex flex-col justify-center items-center cursor-pointer shadow-3xs p-1 group transition-all"
+                            >
+                              <div className="text-gray-400 group-hover:text-sky-500 group-hover:scale-110 transition-transform mb-2">
+                                <Plus size={16} />
+                              </div>
+                              <span className="absolute bottom-1.5 inset-x-0 mx-auto text-[7.5px] text-gray-500 font-medium max-w-[90%] text-center leading-tight">
+                                上传客户1画像
+                              </span>
+                            </button>
+                          )
+                        ) : (
+                          <div className="relative aspect-[4/5] w-full rounded-xl overflow-hidden shadow-3xs bg-neutral-900 group">
+                            <img
+                              src={localFile1}
+                              alt="客户1画像"
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            {extraTurns.length === 0 && (
+                              <button
+                                onClick={() => setLocalFile1(null)}
+                                className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] backdrop-blur-md transition-colors"
+                              >
+                                ×
+                              </button>
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 py-1 bg-black/50 backdrop-blur-sm">
+                              <span className="text-[8px] text-white font-bold max-w-full truncate block px-1">
+                                客户1画像
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {!localFile2 ? (
+                          extraTurns.length === 0 && (
+                            <button
+                              onClick={() => handleSingleUpload(setLocalFile2)}
+                              className="relative aspect-[4/5] w-full border-2 border-dashed border-neutral-700 hover:border-sky-300 bg-neutral-800/50 active:bg-neutral-800 rounded-xl overflow-hidden flex flex-col justify-center items-center cursor-pointer shadow-3xs p-1 group transition-all"
+                            >
+                              <div className="text-gray-400 group-hover:text-sky-500 group-hover:scale-110 transition-transform mb-2">
+                                <Plus size={16} />
+                              </div>
+                              <span className="absolute bottom-1.5 inset-x-0 mx-auto text-[7.5px] text-gray-500 font-medium max-w-[90%] text-center leading-tight">
+                                上传公司老板画像
+                              </span>
+                            </button>
+                          )
+                        ) : (
+                          <div className="relative aspect-[4/5] w-full rounded-xl overflow-hidden shadow-3xs bg-neutral-900 group">
+                            <img
+                              src={localFile2}
+                              alt="公司老板画像"
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            {extraTurns.length === 0 && (
+                              <button
+                                onClick={() => setLocalFile2(null)}
+                                className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] backdrop-blur-md transition-colors"
+                              >
+                                ×
+                              </button>
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 py-1 bg-black/50 backdrop-blur-sm">
+                              <span className="text-[8px] text-white font-bold max-w-full truncate block px-1">
+                                公司老板画像
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {!localFile3 ? (
+                          extraTurns.length === 0 && (
+                            <button
+                              id="add-material-trigger-box"
+                              onClick={() => handleSingleUpload(setLocalFile3)}
+                              className="relative aspect-[4/5] w-full border-2 border-dashed border-neutral-700 hover:border-sky-300 bg-neutral-800/50 active:bg-neutral-800 rounded-xl overflow-hidden flex flex-col justify-center items-center cursor-pointer shadow-3xs p-1 group transition-all"
+                            >
+                              <div className="text-gray-400 group-hover:text-sky-500 group-hover:scale-110 transition-transform mb-2">
+                                <Plus size={16} />
+                              </div>
+                              <span className="absolute bottom-1.5 inset-x-0 mx-auto text-[7.5px] text-gray-500 font-medium max-w-[90%] text-center leading-tight">
+                                上传公司实拍
+                              </span>
+                            </button>
+                          )
+                        ) : (
+                          <div className="relative aspect-[4/5] w-full rounded-xl overflow-hidden shadow-3xs bg-neutral-900 group">
+                            <img
+                              src={localFile3}
+                              alt="公司实拍"
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            {extraTurns.length === 0 && (
+                              <button
+                                onClick={() => setLocalFile3(null)}
+                                className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] backdrop-blur-md transition-colors"
+                              >
+                                ×
+                              </button>
+                            )}
+                            <div className="absolute inset-x-0 bottom-0 py-1 bg-black/50 backdrop-blur-sm">
+                              <span className="text-[8px] text-white font-bold max-w-full truncate block px-1">
+                                公司实拍
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Text Guide / Next actions prompt */}
+              <div className="pt-3 border-t border-neutral-700/50 text-[12px] text-white leading-relaxed text-left select-text space-y-3">
+                <p>我已经收到您的素材啦！结合您的模板，我为您构思了一个视频脚本：</p>
+                
+                <div className="relative group">
+                  {!isEditingProposal ? (
+                    <div className="relative">
+                      <div className="w-full text-[11px] text-neutral-400 bg-[#1c1c1e] border border-neutral-600 p-3 rounded-xl whitespace-pre-wrap font-serif min-h-[140px]">
+                        {aiResult.proposal1}
+                      </div>
+                      <button
+                        onClick={() => !hasSubsequentMessages && setIsEditingProposal(true)}
+                        disabled={hasSubsequentMessages}
+                        className={`absolute top-2 right-2 p-2 rounded-lg transition-all shadow-md backdrop-blur-md ${
+                          hasSubsequentMessages
+                            ? "hidden"
+                            : "bg-blue-500/20 border border-blue-500/40 text-blue-400 opacity-100 hover:bg-blue-500/30 hover:text-blue-300"
+                        }`}
+                        title="编辑文字"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <textarea
+                        ref={textareaRef}
+                        value={aiResult.proposal1}
+                        onChange={(e) => setAiResult({ ...aiResult, proposal1: e.target.value })}
+                        onBlur={() => setIsEditingProposal(false)}
+                        autoFocus
+                        className="w-full text-[11px] text-white bg-[#1c1c1e] border border-blue-500/50 p-3 rounded-xl whitespace-pre-wrap font-serif min-h-[140px] resize-none focus:outline-none ring-1 ring-blue-500/30 overflow-hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <p>关于您上传的产品，在分镜中需要具体参数、型号，请您在对话框回答我。</p>
+              </div>
+
+              {/* Options Trigger at the bottom */}
+              <div className="flex justify-end mt-2 gap-2">
+                <button
+                  onClick={hasSubsequentMessages ? undefined : handleSkip}
+                  disabled={hasSubsequentMessages}
+                  className={`flex items-center justify-center transition-all px-6 w-20 h-7 rounded-md ${
+                    hasSubsequentMessages
+                      ? "bg-neutral-800/50 text-neutral-600 cursor-not-allowed"
+                      : "text-white cursor-pointer bg-blue-600 hover:bg-blue-500 shadow-sm shadow-blue-500/30 active:scale-95"
+                  }`}
+                  title="跳过"
+                >
+                  <span className="text-[11px] font-bold whitespace-nowrap">跳过</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- DYNAMIC EXTRA CHAT TURNS --- */}
+        {extraTurns.map((turn) => {
+          if (turn.sender === "user") {
+            return (
+              <div key={turn.id} className="flex justify-end w-full animate-fade-in">
+                <div className="bg-blue-600 px-4 py-3 rounded-2xl rounded-tr-xs shadow-sm max-w-[85%] border border-blue-500 space-y-2">
+                  {turn.text && (
+                    <div className="text-[12px] font-medium text-white leading-relaxed text-left select-text">
+                      {turn.text}
+                    </div>
+                  )}
+                  {turn.imageUrl && !turn.imageUrls && (
+                    <div className="rounded-xl overflow-hidden border border-white/20 max-w-[200px] shadow-sm ml-auto">
+                      <img
+                        src={turn.imageUrl}
+                        alt="Uploaded content"
+                        className="w-full object-contain max-h-40 rounded-lg"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
+                  {turn.imageUrls && (
+                    <div className="flex flex-wrap gap-1.5 justify-end max-w-[240px] ml-auto">
+                      {turn.imageUrls.map((url, index) => (
+                        <div key={index} className="rounded-xl overflow-hidden border border-white/20 w-[70px] h-[70px] shadow-sm">
+                          <img
+                            src={url}
+                            alt={`Uploaded index ${index}`}
+                            className="w-full h-full object-cover rounded-lg"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          } else {
+            return (
+              <div key={turn.id} className="flex items-start gap-2 max-w-[85%] animate-fade-in">
+                <div className="w-8 h-8 shrink-0 rounded-full bg-[#1c1c1e] flex items-center justify-center shadow-3xs border border-[#3a3a3c] overflow-hidden">
+                  <img src="/logo2.png" alt="logo" className="w-[85%] h-[85%] object-contain" />
+                </div>
+                <div className="bg-[#2c2c2e] px-4 py-3 rounded-2xl rounded-tl-xs shadow-sm border border-[#3a3a3c] flex items-center gap-2.5 text-left select-text">
+                  {turn.isAiThinking ? (
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[11px] font-bold text-blue-400">
+                        小鹿拍拍正在分析
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-dot-1" />
+                        <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-dot-2" />
+                        <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-dot-3" />
+                      </div>
+                    </div>
+                  ) : turn.text?.includes("正在排队等待自动生成") ? (
+                    <div className="flex flex-col min-w-[220px] w-full">
+                      <div className="text-[12px] font-medium text-white leading-relaxed mb-3">
+                        素材信息已齐全，正在排队等待自动生成
+                      </div>
+                      <div className="border-t border-[#4a4a4c] pt-2.5 w-full flex items-center justify-between">
+                        <span className="text-[12px] text-[#a0a0a5]">可进入"进行中"查看进度</span>
+                        <button 
+                          onClick={onGoToRenderingBox}
+                          className="px-3 py-1 bg-[#1c1c1e] border border-[#4a4a4c] focus:outline-none hover:bg-[#323234] active:bg-[#222224] rounded-full text-[12px] text-[#e0e0e0] active:scale-95 transition-all cursor-pointer flex items-center gap-0.5">
+                          <span>查看</span>
+                          <ChevronRight size={12} className="opacity-70" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[12px] font-medium text-white leading-relaxed">
+                      {turn.text}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+        })}
+
+        {/* --- USER FINAL MESSAGE --- */}
+        {userFinalMessage && (
+          <div className="flex justify-end w-full animate-fade-in">
+            <div className="bg-blue-600 px-4 py-3 rounded-2xl rounded-tr-xs shadow-sm max-w-[85%] border border-blue-500">
+              <div className="text-[12px] font-medium text-white leading-relaxed">
+                {userFinalMessage}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- FINAL ASSISTANT MESSAGE --- */}
+        {showFinalResponse && (
+          <div className="flex items-start gap-2 max-w-[85%] animate-fade-in">
+            <div className="w-8 h-8 shrink-0 rounded-full bg-[#1c1c1e] flex items-center justify-center shadow-3xs border border-[#3a3a3c] overflow-hidden">
+              <img src="/logo2.png" alt="logo" className="w-[85%] h-[85%] object-contain" />
+            </div>
+            <div className="bg-[#2c2c2e] px-4 py-3 rounded-2xl rounded-tl-xs shadow-sm border border-[#3a3a3c] flex items-center gap-2.5">
+              <div className="flex flex-col min-w-[220px] w-full">
+                <div className="text-[12px] font-medium text-white leading-relaxed mb-3">
+                  素材信息已齐全，正在排队等待自动生成
+                </div>
+                <div className="border-t border-[#4a4a4c] pt-2.5 w-full flex items-center justify-between">
+                  <span className="text-[12px] text-[#a0a0a5]">可进入"进行中"查看进度</span>
+                  <button 
+                    onClick={onGoToRenderingBox}
+                    className="px-3 py-1 bg-[#1c1c1e] border border-[#4a4a4c] focus:outline-none hover:bg-[#323234] active:bg-[#222224] rounded-full text-[12px] text-[#e0e0e0] active:scale-95 transition-all cursor-pointer flex items-center gap-0.5">
+                    <span>查看</span>
+                    <ChevronRight size={12} className="opacity-70" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} className="h-2 flex-shrink-0" />
+      </div>
+
+      {/* Real-time Voice Recording overlay */}
+      <VoiceRecordingOverlay isRecording={isRecording} />
+
+      {/* 4. Chat Input Box */}
+      <div className="bg-neutral-900 border-t border-neutral-800 shrink-0 p-3 flex flex-col relative z-10 w-full gap-2">
+        {showFinalResponse || extraTurns.some(t => t.text?.includes("素材信息已齐全")) ? (
+          <div className="py-2 text-center text-[13px] text-neutral-500 w-full tracking-wide">
+            本次对话已结束
+          </div>
+        ) : (
+          <>
+            {/* Staged Images Preview */}
+            {stagedImages.length > 0 && !isKeyboardOpen && (
+              <div className="flex gap-2 px-1 py-1 overflow-x-auto whitespace-nowrap scrollbar-hide max-w-full">
+                {stagedImages.map((url, i) => (
+                  <div key={i} className="relative w-14 h-14 shrink-0 rounded-[8px] border border-[#3c3c3e] overflow-hidden bg-black/40">
+                    <img src={url} className="w-full h-full object-cover" alt="staged" />
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setStagedImages(prev => prev.filter((_, idx) => idx !== i));
+                      }}
+                      className="absolute top-0 right-0 z-10 w-4 h-4 bg-neutral-800 rounded-full flex items-center justify-center cursor-pointer opacity-90 transition-opacity m-0.5"
+                    >
+                      <span className="text-white text-[10px] leading-none">×</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex w-full gap-2">
+              <div className="flex-1 bg-black/40 border border-neutral-800 rounded-full flex items-center px-4 py-1.5 relative">
+                <input
+                  readOnly
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onClick={() => setIsKeyboardOpen(true)}
+                  placeholder="输入对话、补充要求..."
+                  className="w-full bg-transparent text-white outline-none placeholder-gray-500 text-[14px] pr-8 cursor-pointer"
+                />
+                {!isKeyboardOpen && (
+                  <button
+                    onMouseDown={handleVoiceStart}
+                    onMouseUp={handleVoiceEnd}
+                    onTouchStart={handleVoiceStart}
+                    onTouchEnd={handleVoiceEnd}
+                    onMouseLeave={handleVoiceCancel}
+                    className={`absolute right-1.5 w-7 h-7 flex items-center justify-center rounded-full transition-colors cursor-pointer select-none ${
+                      isRecording
+                        ? "text-blue-500 bg-white/10"
+                        : "text-neutral-400 hover:text-white"
+                    }`}
+                    title="按住说话，松开结束"
+                  >
+                    <Mic size={16} />
+                  </button>
+                )}
+              </div>
+              <div className={`relative flex items-center justify-center ${isKeyboardOpen ? "hidden" : ""}`}>
+                <button
+                  onClick={(e) => {
+                     e.preventDefault();
+                     fileInputRef.current?.click();
+                  }}
+                  className="flex items-center justify-center w-[34px] h-[34px] rounded-full hover:bg-white/10 transition-colors cursor-pointer text-[#aaaaaa] shrink-0 active:scale-95"
+                  title="相册上传"
+                >
+                  <ImageIcon size={22} />
+                </button>
+              </div>
+              <button
+                onClick={handleSendMessage}
+                className="px-4 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white text-[13px] font-bold shrink-0 active:scale-95 transition-all outline-none"
+              >
+                发送
+              </button>
+            </div>
+            <input
+              type="file"
+              multiple
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/jpeg,image/png,video/mp4,video/quicktime"
+              className="hidden"
+            />
+          </>
+        )}
+      </div>
+
+      {/* Keyboard Overlay reused from Subtitle Editor */}
+      <KeyboardOverlay
+        isOpen={isKeyboardOpen}
+        value={inputText}
+        onChange={setInputText}
+        onClose={() => setIsKeyboardOpen(false)}
+        onSubmit={handleSendMessage}
+        isRecording={isRecording}
+        onVoiceStart={handleVoiceStart}
+        onVoiceEnd={handleVoiceEnd}
+        onVoiceCancel={handleVoiceCancel}
+        onUploadClick={() => fileInputRef.current?.click()}
+        uploadType="image"
+        mediaFiles={stagedImages.map((url, idx) => ({ url, name: `image_${idx}.jpg` }))}
+        onRemoveMediaFile={(idx) => setStagedImages(prev => prev.filter((_, i) => i !== idx))}
+      />
+    </div>
+  );
+}

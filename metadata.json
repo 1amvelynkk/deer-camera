@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Remix: AI视频创作小程序交互原型",
+  "description": "100%高保真还原微信小程序AI视频创作原形设计，支持多屏切换、键盘输入模拟、素材管理、方案推荐等完整的前端原型交互与智能脚本生成。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-display: "Space Grotesk", sans-serif;
+}
+
+/* Custom WeChat Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Base custom styles */
+body {
+  background-color: #0f172a;
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Custom pulsing animation for AI Thinking */
+@keyframes bounce-dots {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+.animate-dot-1 {
+  animation: bounce-dots 1s infinite 0s;
+}
+
+.animate-dot-2 {
+  animation: bounce-dots 1s infinite 0.2s;
+}
+
+.animate-dot-3 {
+  animation: bounce-dots 1s infinite 0.4s;
+}
+
+/* Safe touch target layout */
+.min-touch {
+  min-height: 44px;
+  min-width: 44px;
+}
