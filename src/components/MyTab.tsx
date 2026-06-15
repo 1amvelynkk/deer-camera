@@ -40,6 +40,7 @@ interface MyTabProps {
   initialTab?: "rendering" | "exports" | "drafts" | "favorites";
   exports: ExportItem[];
   setExports: React.Dispatch<React.SetStateAction<ExportItem[]>>;
+  onRestoreDraft?: (title: string) => void;
 }
 
 interface DraftItem {
@@ -56,7 +57,7 @@ interface RenderItem {
   status: "rendering" | "queued" | "paused";
 }
 
-export default function MyTab({ creationsCount, onSelectTemplate, favorites, onToggleFavorite, isLoggedIn, setIsLoggedIn, showLoginModal, setShowLoginModal, initialTab, exports, setExports }: MyTabProps) {
+export default function MyTab({ creationsCount, onSelectTemplate, favorites, onToggleFavorite, isLoggedIn, setIsLoggedIn, showLoginModal, setShowLoginModal, initialTab, exports, setExports, onRestoreDraft }: MyTabProps) {
   // 1. Account Settings States
   const [userName, setUserName] = useState<string>(() => {
     return localStorage.getItem("xiaolu_user_nickname") || "华康数智媒介专家";
@@ -538,6 +539,9 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                     key={draft.id} 
                     onClick={() => {
                       triggerToast(`正在恢复草稿：${draft.title}，已为您填充对白！`);
+                      if (onRestoreDraft) {
+                        onRestoreDraft(draft.title);
+                      }
                     }}
                     className="group cursor-pointer relative aspect-[3/4] bg-neutral-800 shrink-0 overflow-hidden"
                   >

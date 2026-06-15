@@ -23,6 +23,8 @@ import {
   Image as ImageIcon,
   CreditCard,
   Phone,
+  Award,
+  Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoTemplate } from "../types";
@@ -89,6 +91,21 @@ interface VideoPreviewProps {
   onDownload?: () => void;
 }
 
+const VOICES_LIST = [
+  { title: "大叔音", desc: "成熟稳重", duration: "00:15", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=100" },
+  { title: "林志玲音", desc: "甜美温柔", duration: "00:22", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100" },
+  { title: "萝莉音", desc: "软萌可爱", duration: "00:18", img: "https://images.unsplash.com/photo-1544640808-32cb4fbadfac?auto=format&fit=crop&q=80&w=100" },
+  { title: "青年音", desc: "阳光清爽", duration: "00:25", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100" },
+  { title: "老爷爷音", desc: "慈祥和蔼", duration: "00:30", img: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=100" },
+  { title: "东北口音", desc: "幽默风趣", duration: "00:12", img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=100" },
+];
+
+const MUSIC_LIST = [
+  { title: "Lucifer", artist: "Kloster 03", duration: "00:21", img: "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&q=80&w=100" },
+  { title: "Running out of time", artist: "DRANK 9!N3", duration: "00:57", img: "https://images.unsplash.com/photo-1493225457124-a1a2a5f5f4fc?auto=format&fit=crop&q=80&w=100" },
+  { title: "National Treasures", artist: "Drake", duration: "01:01", img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=100" },
+];
+
 export default function VideoPreview({
   template,
   onBack,
@@ -103,7 +120,7 @@ export default function VideoPreview({
   onDownload,
 }: VideoPreviewProps) {
   const [isPlaying, setIsPlaying] = useState(true);
-  const [progress, setProgress] = useState(7); // default 00:07 like photo or 00:20
+  const [progress, setProgress] = useState(0); // Play from the start
   const [showMetadata, setShowMetadata] = useState(true); // Toggle between Image 2 & Image 3 states!
 
   // Editing state for my keyframes
@@ -152,14 +169,109 @@ export default function VideoPreview({
     },
   ]);
   const [activeSegmentIndex, setActiveSegmentIndex] = useState(0);
+  const safeActiveSegmentIndex = Math.max(0, Math.min(activeSegmentIndex, segments.length - 1));
+  const currentSegment = segments[safeActiveSegmentIndex];
   const [subtitleSelected, setSubtitleSelected] = useState(true);
   const [editingSubtitleId, setEditingSubtitleId] = useState<
     string | number | null
   >(null);
+  const [editingTab, setEditingTab] = useState<"keyboard" | "font" | "style">("keyboard");
+  const [textStyles, setTextStyles] = useState<Record<string | number, { fontFamily: string; color: string; stroke: string; scale: number }>>({});
   const [isDraggingSubtitle, setIsDraggingSubtitle] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showBackgroundMusic, setShowBackgroundMusic] = useState(true);
+  const [showVoice, setShowVoice] = useState(true);
+  const [showMusicSheet, setShowMusicSheet] = useState(false);
+  const [showVoiceSheet, setShowVoiceSheet] = useState(false);
+  const [musicTab, setMusicTab] = useState<"推荐" | "热门" | "收藏">("推荐");
+  const [selectedTrack, setSelectedTrack] = useState<string>("Lucifer");
+  const [appliedTrack, setAppliedTrack] = useState<string>("Lucifer");
+  const [voiceTab, setVoiceTab] = useState<"推荐" | "收藏">("推荐");
+  const [selectedVoice, setSelectedVoice] = useState<string>("大叔音");
+  const [appliedVoice, setAppliedVoice] = useState<string>("大叔音");
+  const [favoriteVoices, setFavoriteVoices] = useState<string[]>([]);
+  const [favoriteTracks, setFavoriteTracks] = useState<string[]>([]);
+  const [bgmTrackRange, setBgmTrackRange] = useState<[number, number]>([0, 100]);
+  const bgmContainerRef = useRef<HTMLDivElement>(null);
+  const scaleSliderRef = useRef<HTMLDivElement>(null);
+
+  const currentTextStyle = editingSubtitleId !== null ? (textStyles[editingSubtitleId] || { fontFamily: "默认字体", color: "white", stroke: "无", scale: 100 }) : { fontFamily: "默认字体", color: "white", stroke: "无", scale: 100 };
+
+  const updateTextStyle = (updates: Partial<{ fontFamily: string; color: string; stroke: string; scale: number }>) => {
+    if (editingSubtitleId === null) return;
+    setTextStyles(prev => ({
+      ...prev,
+      [editingSubtitleId]: {
+        ...(prev[editingSubtitleId] || { fontFamily: "默认字体", color: "white", stroke: "无", scale: 100 }),
+        ...updates
+      }
+    }));
+  };
+
+  const getStyleForSubtitle = (id: string | number) => {
+    const st = textStyles[id] || { fontFamily: "默认字体", color: "white", stroke: "无", scale: 100 };
+    const strokeCSS = st.stroke === "无" ? "" : `1px 1px 0 ${st.stroke}, -1px -1px 0 ${st.stroke}, 1px -1px 0 ${st.stroke}, -1px 1px 0 ${st.stroke}`;
+    return {
+      fontFamily: st.fontFamily === "默认字体" ? undefined : st.fontFamily,
+      color: st.color,
+      textShadow: st.stroke === "无" ? "0px 1px 3px rgba(0,0,0,0.8)" : strokeCSS,
+      fontSize: `${15 * (st.scale / 100)}px`
+    };
+  };
+
+  const handleBgmPointerDown = (e: any, type: "start" | "end") => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const handleBgmPointerMove = (moveEvent: PointerEvent) => {
+      if (!bgmContainerRef.current) return;
+      const rect = bgmContainerRef.current.getBoundingClientRect();
+      const clickX = Math.max(0, Math.min(moveEvent.clientX - rect.left, rect.width));
+      const percentage = (clickX / rect.width) * 100;
+      
+      setBgmTrackRange(prev => {
+        if (type === "start") {
+          return [Math.min(percentage, prev[1] - 5), prev[1]];
+        } else {
+          return [prev[0], Math.max(percentage, prev[0] + 5)];
+        }
+      });
+    };
+    
+    const handleBgmPointerUp = () => {
+      window.removeEventListener("pointermove", handleBgmPointerMove);
+      window.removeEventListener("pointerup", handleBgmPointerUp);
+    };
+    
+    window.addEventListener("pointermove", handleBgmPointerMove);
+    window.addEventListener("pointerup", handleBgmPointerUp);
+  };
+
+  const handleScalePointerDown = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      if (!scaleSliderRef.current) return;
+      const rect = scaleSliderRef.current.getBoundingClientRect();
+      const clickX = Math.max(0, Math.min(moveEvent.clientX - rect.left, rect.width));
+      const percentage = Math.round((clickX / rect.width) * 150 + 50); // Scale from 50% to 200%
+      updateTextStyle({ scale: percentage });
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    
+    // Call once to update immediately
+    handlePointerMove(e);
+  };
+
   const [segmentTransforms, setSegmentTransforms] = useState<
     Record<number | string, { scale: number; rotation: number }>
   >({});
@@ -171,6 +283,7 @@ export default function VideoPreview({
   const currentRotation = segmentTransforms[activeSegmentIndex]?.rotation ?? 0;
   const [toastMessage, setToastMessage] = useState("");
   const [duplicatedSubtitles, setDuplicatedSubtitles] = useState<any[]>([]);
+  const [clickedFrames, setClickedFrames] = useState<string[]>([]);
 
   const subtitleRef = useRef<HTMLDivElement>(null);
   const [showSaveKeyframeOverlay, setShowSaveKeyframeOverlay] = useState(false);
@@ -329,9 +442,9 @@ export default function VideoPreview({
               initial={{ opacity: 0, y: -20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.9 }}
-              className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-black/70 backdrop-blur-md text-white px-4 py-2 rounded-full text-[13px] font-medium shadow-lg whitespace-nowrap"
+              className="absolute top-24 left-1/2 -translate-x-1/2 z-[999] bg-neutral-950/85 backdrop-blur-md text-white text-[10px] font-semibold px-4 py-2 rounded-xl text-center shadow-lg border border-neutral-800/50 flex items-center gap-1.5 max-w-[280px]"
             >
-              {toastMessage}
+              <span className="truncate">{toastMessage}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -357,65 +470,92 @@ export default function VideoPreview({
             <div className="relative h-full aspect-[9/16] shrink-0 max-w-full">
               {/* Floating Side Buttons (Moved outside scaling wrapper) */}
               <div className="absolute -right-[46px] top-[15%] w-[48px] flex flex-col items-center gap-4 z-20">
-                <div className="flex flex-col items-center gap-1 cursor-pointer group/btn active:scale-95 transition-transform">
-                  <button className="flex items-center justify-center bg-white/20 backdrop-blur-md shadow-md rounded-full w-9 h-9 border border-white/30">
-                    <User size={16} className="text-white" />
+                <div className="flex flex-col items-center gap-1 cursor-pointer group/btn active:scale-95 transition-transform" onClick={() => setShowVoiceSheet(true)}>
+                  <button className="flex items-center justify-center bg-white/20 backdrop-blur-md shadow-md rounded-full w-9 h-9 border border-white/30 overflow-hidden relative">
+                    {showVoice && appliedVoice ? (
+                      <img src={VOICES_LIST.find(v => v.title === appliedVoice)?.img} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={16} className="text-white" />
+                    )}
                   </button>
                   <span className="text-[9px] font-bold text-white/90 drop-shadow-sm">
                     音效
                   </span>
                 </div>
-                <div className="flex flex-col items-center gap-1 cursor-pointer group/btn active:scale-95 transition-transform">
-                  <button className="flex items-center justify-center bg-white/20 backdrop-blur-md shadow-md rounded-full w-9 h-9 border border-white/30">
-                    <Music size={16} className="text-white" />
+                <div className="flex flex-col items-center gap-1 cursor-pointer group/btn active:scale-95 transition-transform" onClick={() => setShowMusicSheet(true)}>
+                  <button className="flex items-center justify-center bg-white/20 backdrop-blur-md shadow-md rounded-full w-9 h-9 border border-white/30 overflow-hidden relative">
+                    {showBackgroundMusic && appliedTrack ? (
+                      <img src={MUSIC_LIST.find(m => m.title === appliedTrack)?.img} className="w-full h-full object-cover" />
+                    ) : (
+                      <Music size={16} className="text-white" />
+                    )}
                   </button>
                   <span className="text-[9px] font-bold text-white/90 drop-shadow-sm whitespace-nowrap">
                     背景音乐
                   </span>
                 </div>
                 <AnimatePresence>
-                  {onSaveKeyframe && segments.length > 0 && progress >= 6 && progress % 6 < 2 && (
+                  {onSaveKeyframe && segments.length > 0 && progress >= 6 && progress % 6 < 3 && (
                     <motion.div 
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex flex-col items-center gap-1 cursor-pointer group/btn active:scale-95 transition-transform"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsPlaying(false);
-                        
-                        if (videoRef.current) {
-                          try {
-                            const canvas = document.createElement("canvas");
-                            canvas.width = videoRef.current.videoWidth;
-                            canvas.height = videoRef.current.videoHeight;
-                            const ctx = canvas.getContext("2d");
-                            if (ctx) {
-                              ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-                              setKeyframeScreenshot(canvas.toDataURL("image/jpeg"));
-                            } else {
-                              setKeyframeScreenshot(segments[activeSegmentIndex].image || "");
-                            }
-                          } catch (err) {
-                            setKeyframeScreenshot(segments[activeSegmentIndex].image || "");
-                          }
-                        } else {
-                          setKeyframeScreenshot(segments[activeSegmentIndex].image || "");
-                        }
-                        
-                        setShowSaveKeyframeOverlay(true);
-                      }}
+                      key="keyframe-buttons"
+                      initial={{ opacity: 1 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col items-center gap-3 mt-1"
                     >
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-white/50 rounded-full animate-ping" style={{ animationDuration: '1.5s' }} />
-                        <button className="relative flex items-center justify-center bg-white/30 backdrop-blur-md shadow-[0_0_15px_rgba(255,255,255,0.4)] rounded-full w-9 h-9 border border-white/50">
-                          <Bookmark size={16} className="text-white" />
-                        </button>
-                      </div>
-                      <span className="text-[9px] font-bold text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] whitespace-nowrap animate-pulse">
-                        保存关键帧
-                      </span>
+                      {[
+                        { label: "封面帧", category: "封面", icon: ImageIcon, ping: true },
+                        { label: "荣誉帧", category: "企业荣誉", icon: Award, ping: true },
+                        { label: "名片帧", category: "联系名片", icon: CreditCard, ping: true }
+                      ].map((item, index) => {
+                        const isClicked = clickedFrames.includes(`${activeSegmentIndex}-${item.label}`);
+                        return (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          whileTap={{ scale: 0.95 }}
+                          transition={{ duration: 0.4, type: "spring", stiffness: 300, damping: 25 }}
+                          key={item.label} 
+                          className="flex flex-col items-center gap-1 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isClicked) return;
+                            setClickedFrames(prev => [...prev, `${activeSegmentIndex}-${item.label}`]);
+                            let imgStr = currentSegment?.image || "";
+                            if (videoRef.current) {
+                              try {
+                                const canvas = document.createElement("canvas");
+                                canvas.width = videoRef.current.videoWidth;
+                                canvas.height = videoRef.current.videoHeight;
+                                const ctx = canvas.getContext("2d");
+                                if (ctx) {
+                                  ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+                                  imgStr = canvas.toDataURL("image/jpeg");
+                                }
+                              } catch (err) {}
+                            }
+                            onSaveKeyframe(`关键帧截图-${currentSegment?.id}-${item.label}`, currentSegment?.text || "", imgStr, item.category);
+                          }}
+                        >
+                          <div className="relative">
+                            {!isClicked && item.ping && (
+                              <motion.div
+                                initial={{ scale: 1, opacity: 0.6 }}
+                                animate={{ scale: 1.5, opacity: 0 }}
+                                transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+                                className="absolute inset-0 bg-white/50 rounded-full"
+                              />
+                            )}
+                            <button className={`relative flex items-center justify-center backdrop-blur-md shadow-[0_0_10px_rgba(255,255,255,0.3)] rounded-full w-9 h-9 border transition-colors ${isClicked ? 'bg-[#FA2A55] border-[#FA2A55]' : 'bg-white/30 border-white/50'}`}>
+                              <item.icon size={16} className="text-white" />
+                            </button>
+                          </div>
+                          <span className={`text-[9px] font-bold text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] whitespace-nowrap ${(!isClicked && item.ping) ? 'animate-pulse' : ''} ${isClicked ? 'text-[#FA2A55]' : ''}`}>
+                            {item.label}
+                          </span>
+                        </motion.div>
+                      )})}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -441,7 +581,7 @@ export default function VideoPreview({
               <div className="w-full h-full relative bg-black overflow-hidden rounded-[20px] shadow-lg border border-white/10">
                 <video
                   ref={videoRef}
-                  src={segments[activeSegmentIndex].video}
+                  src={currentSegment?.video}
                   className="w-full h-full object-cover opacity-90 transition-opacity duration-300"
                   autoPlay={isPlaying}
                   loop
@@ -576,10 +716,8 @@ export default function VideoPreview({
                                 }}
                               >
                                 <span
-                                  className="text-white text-[15px] font-bold tracking-wider block text-center"
-                                  style={{
-                                    textShadow: "0px 1px 3px rgba(0,0,0,0.8)",
-                                  }}
+                                  className="font-bold tracking-wider block text-center"
+                                  style={getStyleForSubtitle("main")}
                                 >
                                   {segment.text}
                                 </span>
@@ -587,10 +725,8 @@ export default function VideoPreview({
                             </div>
                           ) : (
                             <span
-                              className="text-white text-[15px] font-bold tracking-wider cursor-text hover:bg-white/10 px-2 py-0.5 rounded transition-all inline-block whitespace-nowrap text-center"
-                              style={{
-                                textShadow: "0px 1px 3px rgba(0,0,0,0.8)",
-                              }}
+                              className="font-bold tracking-wider cursor-text hover:bg-white/10 px-2 py-0.5 rounded transition-all inline-block whitespace-nowrap text-center"
+                              style={getStyleForSubtitle("main")}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (!isDraggingSubtitle) {
@@ -676,10 +812,8 @@ export default function VideoPreview({
                               }}
                             >
                               <span
-                                className="text-white text-[15px] font-bold tracking-wider block text-center"
-                                style={{
-                                  textShadow: "0px 1px 3px rgba(0,0,0,0.8)",
-                                }}
+                                className="font-bold tracking-wider block text-center"
+                                style={getStyleForSubtitle(sub.id)}
                               >
                                 {sub.text}
                               </span>
@@ -788,10 +922,19 @@ export default function VideoPreview({
                 {segments.map((seg, idx) => (
                   <div
                     key={seg.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      let accDuration = 0;
+                      for (let i = 0; i < idx; i++) {
+                        accDuration += segments[i].duration;
+                      }
+                      setProgress(accDuration + 0.1);
+                      setIsPlaying(true);
+                    }}
                     style={{
                       width: `${(seg.duration / totalDuration) * 100}%`,
                     }}
-                    className={`relative shrink-0 rounded-[8px] overflow-hidden border-[2px] h-14 flex items-center justify-center p-0 transition-all ${activeSegmentIndex === idx ? "border-[#ff4a11] shadow-[0_0_0_1px_rgba(255,74,17,0.3)] bg-[#ff4a11]" : "border-white/10 bg-white/5 hover:border-white/20"}`}
+                    className={`relative shrink-0 rounded-[8px] overflow-hidden border-[2px] h-14 flex items-center justify-center p-0 transition-all cursor-pointer ${activeSegmentIndex === idx ? "border-[#ff4a11] shadow-[0_0_0_1px_rgba(255,74,17,0.3)] bg-[#ff4a11]" : "border-white/10 bg-white/5 hover:border-white/20"}`}
                   >
                     <img
                       src={seg.image}
@@ -807,22 +950,70 @@ export default function VideoPreview({
                         {seg.duration}s
                       </div>
                     )}
+                    {activeSegmentIndex === idx && segments.length > 1 && (
+                      <button 
+                        className="absolute top-0.5 right-0.5 bg-black/60 hover:bg-[#FA2A55] text-white rounded p-[2px] transition-colors shadow-sm z-10 block"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (segments.length <= 1) return;
+                          
+                          setSegments(prev => {
+                            const next = prev.filter((_, i) => i !== idx);
+                            // Adjust segment identifiers or progress if needed
+                            return next;
+                          });
+                          
+                          if (idx >= segments.length - 1) {
+                            // Deleted last segment, move progress back
+                            let newDuration = 0;
+                            for(let i=0; i<segments.length-1; i++) {
+                              newDuration += segments[i].duration;
+                            }
+                            setProgress(Math.max(0, newDuration - 0.1));
+                          } else {
+                            // Deleted a segment in middle, keep same progress which will point to next visually
+                          }
+                          
+                        }}
+                      >
+                        <X size={10} strokeWidth={3} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
 
+
+
               {/* Audio Track */}
               {showBackgroundMusic && (
-                <div className="mt-2.5 flex items-center justify-between w-full relative z-10 group/bgm">
-                  <div className="flex items-center justify-between bg-blue-500/90 backdrop-blur-sm border border-blue-400/50 rounded-[6px] text-white text-[11px] font-bold px-2 py-1 w-full shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all">
-                    <span className="truncate">🎵 背景音乐</span>
+                <div 
+                  ref={bgmContainerRef}
+                  className="mt-2 w-full relative z-10 group/bgm h-7 bg-white/5 rounded-[6px]"
+                >
+                  <div 
+                    className="absolute top-0 bottom-0 flex items-center justify-between bg-blue-500/90 backdrop-blur-sm border border-blue-400/50 rounded-[6px] text-white text-[11px] font-bold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
+                    style={{ left: `${bgmTrackRange[0]}%`, width: `${bgmTrackRange[1] - bgmTrackRange[0]}%` }}
+                  >
+                    <div 
+                      className="absolute left-0 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/20 transition-colors rounded-l-[4px]"
+                      onPointerDown={(e) => handleBgmPointerDown(e, "start")}
+                    />
+                    
+                    <span className="truncate px-3 pointer-events-none select-none">🎵 背景音乐</span>
+                    
                     <button
                       onClick={() => setShowBackgroundMusic(false)}
-                      className="opacity-0 group-hover/bgm:opacity-100 transition-opacity hover:bg-black/20 p-0.5 rounded-sm text-white"
+                      className="opacity-0 group-hover/bgm:opacity-100 transition-opacity hover:bg-black/20 p-0.5 rounded-sm text-white ml-2 mr-5 z-10"
                       title="删除背景音乐"
                     >
                       <Trash2 size={12} />
                     </button>
+
+                    <div 
+                      className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize hover:bg-white/20 transition-colors rounded-r-[4px]"
+                      onPointerDown={(e) => handleBgmPointerDown(e, "end")}
+                    />
                   </div>
                 </div>
               )}
@@ -863,7 +1054,7 @@ export default function VideoPreview({
                     type="text"
                     value={
                       editingSubtitleId === "main"
-                        ? segments[activeSegmentIndex].text
+                        ? currentSegment?.text || ""
                         : duplicatedSubtitles.find(
                             (s) => s.id === editingSubtitleId,
                           )?.text || ""
@@ -871,7 +1062,7 @@ export default function VideoPreview({
                     onChange={(e) => {
                       if (editingSubtitleId === "main") {
                         const newSegments = [...segments];
-                        newSegments[activeSegmentIndex].text = e.target.value;
+                        newSegments[safeActiveSegmentIndex].text = e.target.value;
                         setSegments(newSegments);
                       } else {
                         setDuplicatedSubtitles((prev) =>
@@ -907,7 +1098,10 @@ export default function VideoPreview({
 
               {/* Tabs */}
               <div className="flex items-center px-4 pb-2 text-[14px] font-bold text-gray-400 gap-6 border-b border-[#2c2c2e]/50 mt-1">
-                <div className="flex items-center gap-1.5 text-white border-b-[2.5px] border-white pb-1.5 relative top-[2px]">
+                <div 
+                  className={`flex items-center gap-1.5 pb-1.5 cursor-pointer relative top-[2px] ${editingTab === "keyboard" ? "text-white border-b-[2.5px] border-white" : ""}`}
+                  onClick={() => setEditingTab("keyboard")}
+                >
                   <svg
                     width="15"
                     height="15"
@@ -938,248 +1132,462 @@ export default function VideoPreview({
                   </svg>
                   键盘
                 </div>
-                <div className="flex items-center gap-1.5 pb-1.5 cursor-pointer">
-                  <Sparkles size={14} /> 模板
-                </div>
-                <div className="flex items-center gap-1.5 pb-1.5 cursor-pointer">
+                <div 
+                  className={`flex items-center gap-1.5 pb-1.5 cursor-pointer relative top-[2px] ${editingTab === "font" ? "text-white border-b-[2.5px] border-white" : ""}`}
+                  onClick={() => setEditingTab("font")}
+                >
                   <span className="font-serif font-black text-[15px] tracking-tighter">
                     Aa
                   </span>{" "}
                   字体
                 </div>
-                <div className="flex items-center gap-1.5 pb-1.5 cursor-pointer">
+                <div 
+                  className={`flex items-center gap-1.5 pb-1.5 cursor-pointer relative top-[2px] ${editingTab === "style" ? "text-white border-b-[2.5px] border-white" : ""}`}
+                  onClick={() => setEditingTab("style")}
+                >
                   <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-blue-500 via-pink-500 to-yellow-500 border border-[#3c3c3e]" />
                   样式
                 </div>
               </div>
 
-              {/* Keyboard Mock */}
-              <div className="px-1.5 pt-3 pb-8 flex flex-col gap-2 bg-[#2a2a2c] mt-2 shadow-inner">
-                <div className="flex justify-between px-1 gap-1.5">
-                  {["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"].map(
-                    (k) => (
+              {/* Editing Tab Content */}
+              <div className="bg-[#2a2a2c] mt-2 shadow-inner h-[236px] overflow-hidden w-full relative">
+                {editingTab === "keyboard" && (
+                  <div className="px-1.5 pt-3 pb-8 flex flex-col gap-2 h-full">
+                  <div className="flex justify-between px-1 gap-1.5">
+                    {["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"].map(
+                      (k) => (
+                        <div
+                          key={k}
+                          className="flex-1 h-[42px] bg-[#4a4a4c] rounded-[6px] flex items-center justify-center text-white text-[19px] shadow-sm uppercase font-medium"
+                        >
+                          {k}
+                        </div>
+                      ),
+                    )}
+                  </div>
+                  <div className="flex justify-between px-3 gap-1.5">
+                    {["a", "s", "d", "f", "g", "h", "j", "k", "l"].map((k) => (
                       <div
                         key={k}
                         className="flex-1 h-[42px] bg-[#4a4a4c] rounded-[6px] flex items-center justify-center text-white text-[19px] shadow-sm uppercase font-medium"
                       >
                         {k}
                       </div>
-                    ),
-                  )}
+                    ))}
+                  </div>
+                  <div className="flex justify-between gap-1.5 px-0.5">
+                    <div className="w-10 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white shadow-sm shrink-0">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 19V5" />
+                        <path d="M5 12l7-7 7 7" />
+                      </svg>
+                    </div>
+                    {["z", "x", "c", "v", "b", "n", "m"].map((k) => (
+                      <div
+                        key={k}
+                        className="flex-1 h-[42px] bg-[#4a4a4c] rounded-[6px] flex items-center justify-center text-white text-[19px] shadow-sm uppercase font-medium"
+                      >
+                        {k}
+                      </div>
+                    ))}
+                    <div className="w-10 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white shadow-sm shrink-0">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+                        <line x1="18" y1="9" x2="12" y2="15"></line>
+                        <line x1="12" y1="9" x2="18" y2="15"></line>
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 px-0.5 mt-0.5">
+                    <div className="w-10 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white font-medium text-[15px] shadow-sm shrink-0">
+                      123
+                    </div>
+                    <div className="w-10 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white shadow-sm shrink-0">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                        <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                        <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                      </svg>
+                    </div>
+                    <div className="flex-1 h-[42px] bg-[#4a4a4c] rounded-[6px] flex items-center justify-end text-neutral-400 text-[13px] font-bold shadow-sm pr-3 pb-1">
+                      拼
+                    </div>
+                    <div className="w-16 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white shadow-sm shrink-0">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M9 10l-5 5 5 5" />
+                        <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between px-3 gap-1.5">
-                  {["a", "s", "d", "f", "g", "h", "j", "k", "l"].map((k) => (
-                    <div
-                      key={k}
-                      className="flex-1 h-[42px] bg-[#4a4a4c] rounded-[6px] flex items-center justify-center text-white text-[19px] shadow-sm uppercase font-medium"
+              )}
+                {editingTab === "font" && (
+                  <div className="px-4 pt-4 pb-8 flex justify-center flex-wrap gap-3 h-full content-start overflow-y-auto">
+                  {[
+                    { label: "默认字体", font: "ui-sans-serif, system-ui, sans-serif" },
+                    { label: "宋体", font: `"SimSun", "STSong", serif` },
+                    { label: "黑体", font: `"SimHei", "STHeiti", sans-serif` },
+                    { label: "楷体", font: `"KaiTi", "STKaiti", serif` },
+                    { label: "圆体", font: `"YouYuan", sans-serif` },
+                    { label: "综艺体", font: `"STZhongsong", serif` }
+                  ].map((fontItem, idx) => (
+                    <div 
+                      key={idx}
+                      className={`px-4 py-2 rounded-md text-[14px] font-bold flex items-center justify-center cursor-pointer ${currentTextStyle.fontFamily === fontItem.font ? "border border-[#FA2A55] text-[#FA2A55]" : "bg-[#3a3a3c] text-white"}`}
+                      style={{ fontFamily: fontItem.font }}
+                      onClick={() => updateTextStyle({ fontFamily: fontItem.font })}
                     >
-                      {k}
+                      {fontItem.label}
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-between gap-1.5 px-0.5">
-                  <div className="w-10 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white shadow-sm shrink-0">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 19V5" />
-                      <path d="M5 12l7-7 7 7" />
-                    </svg>
-                  </div>
-                  {["z", "x", "c", "v", "b", "n", "m"].map((k) => (
-                    <div
-                      key={k}
-                      className="flex-1 h-[42px] bg-[#4a4a4c] rounded-[6px] flex items-center justify-center text-white text-[19px] shadow-sm uppercase font-medium"
-                    >
-                      {k}
+              )}
+              {editingTab === "style" && (
+                <div className="px-4 pt-4 pb-8 flex flex-col gap-4 h-full overflow-y-auto items-start">
+                  <div className="flex flex-col gap-2 w-full">
+                    <span className="text-white/80 text-[12px] font-bold">颜色</span>
+                    <div className="flex items-center gap-3">
+                      {[
+                        { color: "white", bg: "bg-white" },
+                        { color: "black", bg: "bg-black" },
+                        { color: "#ef4444", bg: "bg-red-500" },
+                        { color: "#facc15", bg: "bg-yellow-400" },
+                        { color: "#22c55e", bg: "bg-green-500" },
+                        { color: "#3b82f6", bg: "bg-blue-500" }
+                      ].map((cItem, idx) => (
+                        <div 
+                          key={idx}
+                          className={`w-8 h-8 rounded-full ${cItem.bg} border border-white/20 shadow-sm cursor-pointer ${currentTextStyle.color === cItem.color ? "border-[2px] border-[#FA2A55]" : ""}`}
+                          onClick={() => updateTextStyle({ color: cItem.color })}
+                        />
+                      ))}
                     </div>
-                  ))}
-                  <div className="w-10 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white shadow-sm shrink-0">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                  </div>
+                  <div className="flex flex-col gap-2 w-full">
+                    <span className="text-white/80 text-[12px] font-bold">描边</span>
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className={`w-8 h-8 rounded-full shadow-sm cursor-pointer flex items-center justify-center text-white/50 text-[10px] bg-neutral-700/50 border ${currentTextStyle.stroke === "无" ? "border-[2px] border-[#FA2A55]" : "border-white/20"}`}
+                        onClick={() => updateTextStyle({ stroke: "无" })}
+                      >
+                        无
+                      </div>
+                      <div 
+                        className={`w-8 h-8 rounded-full bg-black shadow-sm cursor-pointer border ${currentTextStyle.stroke === "black" ? "border-[2px] border-[#FA2A55]" : "border-white/20"}`}
+                        onClick={() => updateTextStyle({ stroke: "black" })}
+                      />
+                      <div 
+                        className={`w-8 h-8 rounded-full bg-white shadow-sm cursor-pointer border ${currentTextStyle.stroke === "white" ? "border-[2px] border-[#FA2A55]" : "border-white/20"}`}
+                        onClick={() => updateTextStyle({ stroke: "white" })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 w-full mt-2">
+                    <span className="text-white/80 text-[12px] font-bold flex justify-between">大小 <span className="text-[#FA2A55]">{currentTextStyle.scale}%</span></span>
+                    <div 
+                      ref={scaleSliderRef}
+                      className="w-full h-1.5 bg-black/50 rounded-full relative cursor-pointer"
+                      onPointerDown={handleScalePointerDown}
                     >
-                      <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
-                      <line x1="18" y1="9" x2="12" y2="15"></line>
-                      <line x1="12" y1="9" x2="18" y2="15"></line>
-                    </svg>
+                      <div className="h-full bg-[#FA2A55] rounded-full" style={{ width: `${(currentTextStyle.scale - 50) / 1.5}%` }} />
+                      <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow border border-black/10 transition-transform" style={{ left: `calc(${(currentTextStyle.scale - 50) / 1.5}% - 8px)` }} />
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-1.5 px-0.5 mt-0.5">
-                  <div className="w-10 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white font-medium text-[15px] shadow-sm shrink-0">
-                    123
-                  </div>
-                  <div className="w-10 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white shadow-sm shrink-0">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                      <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                      <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                    </svg>
-                  </div>
-                  <div className="flex-1 h-[42px] bg-[#4a4a4c] rounded-[6px] flex items-center justify-end text-neutral-400 text-[13px] font-bold shadow-sm pr-3 pb-1">
-                    拼
-                  </div>
-                  <div className="w-16 h-[42px] bg-[#3a3a3c] rounded-[6px] flex items-center justify-center text-white shadow-sm shrink-0">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M9 10l-5 5 5 5" />
-                      <path d="M20 4v7a4 4 0 0 1-4 4H4" />
-                    </svg>
-                  </div>
-                </div>
+              )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Full Screen Save Keyframe Overlay */}
+        {/* Music Sheet Overlay */}
         <AnimatePresence>
-          {showSaveKeyframeOverlay && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-[60] bg-black/40 backdrop-blur-md flex flex-col items-center justify-center p-6 overflow-hidden"
-            >
-              {/* Top Left Return Button */}
-              <div 
-                className="absolute top-12 left-6 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center cursor-pointer hover:bg-white/20 active:scale-95 transition-all shadow-md z-20"
-                onClick={() => {
-                  setShowSaveKeyframeOverlay(false);
-                  setIsPlaying(true);
-                }}
-              >
-                <ChevronLeft size={22} className="text-white relative right-[1px]" />
-              </div>
-
-              {/* Current Page Screenshot */}
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="w-[62%] aspect-[9/16] rounded-xl overflow-hidden shadow-2xl mb-8 border border-white/10 relative mt-2 z-10"
-              >
-                <img src={keyframeScreenshot} alt="screenshot" className="w-full h-full object-cover" />
-              </motion.div>
-
-              {/* Bottom gradient semi-circle background to emphasize it */}
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.5, y: "50%" }}
-                animate={{ opacity: 1, scale: 1, y: "40%" }}
-                exit={{ opacity: 0, scale: 0.5, y: "50%" }}
-                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-gradient-radial from-white/10 via-black/40 to-transparent pointer-events-none"
+          {showMusicSheet && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 z-[100] bg-black/40 backdrop-blur-sm"
+                onClick={() => setShowMusicSheet(false)}
               />
-
-              <div 
-                className="absolute bottom-[44px] left-1/2 -translate-x-1/2 text-white/80 text-[13px] font-medium tracking-wider z-20 whitespace-nowrap"
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="absolute bottom-0 left-0 right-0 z-[110] flex flex-col bg-[#1c1c1e]/95 backdrop-blur-3xl border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] rounded-t-[20px] h-[65%] overflow-hidden"
               >
-                选择你的关键帧类型
-              </div>
+                {/* Drag handle */}
+                <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-2 shrink-0 pointer-events-none" />
 
-              <div className="absolute bottom-[56px] left-1/2 w-px h-px z-10 pointer-events-none">
-                {/* 封面 (Cover) */}
-                <motion.div
-                  initial={{ opacity: 0, x: 0, y: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, x: -100, y: -80, scale: 1 }}
-                  exit={{ opacity: 0, x: 0, y: 0, scale: 0.5 }}
-                  transition={{ delay: 0.05, type: "spring", stiffness: 250, damping: 20 }}
-                  className="absolute pointer-events-auto flex flex-col items-center gap-2 -translate-x-1/2 -translate-y-1/2"
-                >
-                  <button
-                    onClick={() => {
-                      if (onSaveKeyframe) {
-                        onSaveKeyframe(`关键帧截图-${segments[activeSegmentIndex].id}`, segments[activeSegmentIndex].text, keyframeScreenshot, "封面");
-                      }
-                      setShowSaveKeyframeOverlay(false);
-                      setIsPlaying(true);
-                    }}
-                    className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white/20 hover:scale-105 active:scale-95 transition-all shadow-lg"
-                  >
-                    <ImageIcon size={24} strokeWidth={1.5} />
-                  </button>
-                  <span className="text-white/90 drop-shadow-md text-[11px] font-medium whitespace-nowrap tracking-wide">封面</span>
-                </motion.div>
+                <div className="px-4 pb-2 shrink-0">
+                  <div className="bg-white/10 rounded-lg px-3 py-2 flex items-center gap-2 text-white/40">
+                    <Search size={16} />
+                    <input 
+                      type="text" 
+                      placeholder="搜索歌名/歌手/歌词/情绪"
+                      className="bg-transparent text-white outline-none flex-1 font-medium text-[13px] placeholder:text-white/40"
+                    />
+                  </div>
+                </div>
 
-                {/* 名片 (Business Card) */}
-                <motion.div
-                  initial={{ opacity: 0, x: 0, y: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, x: 0, y: -110, scale: 1 }}
-                  exit={{ opacity: 0, x: 0, y: 0, scale: 0.5 }}
-                  transition={{ delay: 0.1, type: "spring", stiffness: 250, damping: 20 }}
-                  className="absolute pointer-events-auto flex flex-col items-center gap-2 -translate-x-1/2 -translate-y-1/2"
-                >
-                  <button
-                    onClick={() => {
-                      if (onSaveKeyframe) {
-                        onSaveKeyframe(`关键帧截图-${segments[activeSegmentIndex].id}`, segments[activeSegmentIndex].text, keyframeScreenshot, "名片");
-                      }
-                      setShowSaveKeyframeOverlay(false);
-                      setIsPlaying(true);
-                    }}
-                    className="w-16 h-16 rounded-full bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-md border border-white/30 flex items-center justify-center text-white hover:bg-white/30 hover:scale-105 active:scale-95 transition-all shadow-xl"
-                  >
-                    <CreditCard size={28} strokeWidth={1.5} />
-                  </button>
-                  <span className="text-white/90 drop-shadow-md text-[11px] font-medium whitespace-nowrap tracking-wide">名片</span>
-                </motion.div>
+                <div className="flex border-b border-white/10 px-4 pt-1 shrink-0 bg-transparent z-10 sticky top-0 relative items-center">
+                  <div className="flex gap-6 mr-auto">
+                    {["推荐", "收藏"].map((tab) => (
+                      <button 
+                        key={tab}
+                        onClick={() => setMusicTab(tab as any)}
+                        className={`pb-3 font-bold text-[14px] relative transition-colors ${musicTab === tab ? "text-white" : "text-white/50"}`}
+                      >
+                        {tab}
+                        {musicTab === tab && (
+                          <motion.div 
+                            layoutId="musicTabIndicator"
+                            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-white" 
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                {/* 联系方式 (Contact) */}
-                <motion.div
-                  initial={{ opacity: 0, x: 0, y: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, x: 100, y: -80, scale: 1 }}
-                  exit={{ opacity: 0, x: 0, y: 0, scale: 0.5 }}
-                  transition={{ delay: 0.15, type: "spring", stiffness: 250, damping: 20 }}
-                  className="absolute pointer-events-auto flex flex-col items-center gap-2 -translate-x-1/2 -translate-y-1/2"
-                >
-                  <button
-                    onClick={() => {
-                      if (onSaveKeyframe) {
-                        onSaveKeyframe(`关键帧截图-${segments[activeSegmentIndex].id}`, segments[activeSegmentIndex].text, keyframeScreenshot, "联系方式");
-                      }
-                      setShowSaveKeyframeOverlay(false);
-                      setIsPlaying(true);
-                    }}
-                    className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-white/20 hover:scale-105 active:scale-95 transition-all shadow-lg"
-                  >
-                    <Phone size={24} strokeWidth={1.5} />
-                  </button>
-                  <span className="text-white/90 drop-shadow-md text-[11px] font-medium whitespace-nowrap tracking-wide">联系方式</span>
-                </motion.div>
-              </div>
-            </motion.div>
+                <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col pt-3">
+                  {MUSIC_LIST.filter(track => musicTab === "收藏" ? favoriteTracks.includes(track.title) : true).map((track, i) => {
+                    const isSelected = track.title === selectedTrack;
+                    return (
+                      <div 
+                        key={i} 
+                        className={`flex items-center gap-3 py-3 w-full border-b border-white/5 last:border-0 cursor-pointer active:bg-white/5 rounded-lg px-2 -mx-2 transition-colors ${isSelected ? "" : ""}`}
+                        onClick={() => setSelectedTrack(track.title)}
+                      >
+                        <div className={`w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-white/10 relative ${isSelected ? "border-[2px] border-[#FA2A55]" : ""}`}>
+                          <img src={track.img} alt={track.title} className="w-full h-full object-cover opacity-90" />
+                        </div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[14px] font-bold truncate ${isSelected ? "text-[#FA2A55]" : "text-white"}`}>
+                              {track.title}
+                            </span>
+                            {appliedTrack === track.title && !isSelected && (
+                              <span className="text-[#FA2A55] text-[10px] bg-[#FA2A55]/10 px-1.5 py-0.5 rounded font-bold whitespace-nowrap shrink-0">使用中</span>
+                            )}
+                            {isSelected && (
+                              <div className="flex items-end gap-[2px] h-[10px]">
+                                <div className="w-[3px] h-[4px] bg-[#FA2A55] rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "600ms" }} />
+                                <div className="w-[3px] h-[8px] bg-[#FA2A55] rounded-full animate-bounce" style={{ animationDelay: "200ms", animationDuration: "600ms" }} />
+                                <div className="w-[3px] h-[6px] bg-[#FA2A55] rounded-full animate-bounce" style={{ animationDelay: "400ms", animationDuration: "600ms" }} />
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[11px] font-medium text-white/50 mt-0.5 truncate">{track.artist} · {track.duration}</span>
+                        </div>
+                        
+                        {isSelected && (
+                          <div className="flex items-center gap-3 shrink-0 ml-2">
+                            <button className="text-white/80 active:scale-95 transition-transform" onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (favoriteTracks.includes(track.title)) {
+                                  setFavoriteTracks(prev => prev.filter(t => t !== track.title));
+                                  showToast("已取消收藏");
+                                } else {
+                                  setFavoriteTracks(prev => [...prev, track.title]);
+                                  showToast("已收藏");
+                                }
+                              }}>
+                              <Star size={20} className={`stroke-[2.5] ${favoriteTracks.includes(track.title) ? "fill-[#FA2A55] stroke-[#FA2A55]" : ""}`} />
+                            </button>
+                            {appliedTrack === track.title ? (
+                              <span className="text-[#FA2A55] text-[13px] font-bold px-2">正在使用</span>
+                            ) : (
+                              <button 
+                                className="bg-[#FA2A55] text-white text-[13px] font-bold px-4 py-1.5 rounded-md active:scale-95 transition-transform"
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setAppliedTrack(track.title);
+                                  setShowMusicSheet(false); 
+                                  setShowBackgroundMusic(true);
+                                  showToast("已应用背景音乐"); 
+                                }}
+                              >
+                                使用
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
+
+        {/* Voice Sheet Overlay */}
+        <AnimatePresence>
+          {showVoiceSheet && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 z-[100] bg-black/40 backdrop-blur-sm"
+                onClick={() => setShowVoiceSheet(false)}
+              />
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="absolute bottom-0 left-0 right-0 z-[110] flex flex-col bg-[#1c1c1e]/95 backdrop-blur-3xl border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] rounded-t-[20px] h-[65%] overflow-hidden"
+              >
+                {/* Drag handle */}
+                <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-2 shrink-0 pointer-events-none" />
+
+                <div className="px-4 pb-2 shrink-0">
+                  <div className="bg-white/10 rounded-lg px-3 py-2 flex items-center gap-2 text-white/40">
+                    <Search size={16} />
+                    <input 
+                      type="text" 
+                      placeholder="搜索音效/场景/风格"
+                      className="bg-transparent text-white outline-none flex-1 font-medium text-[13px] placeholder:text-white/40"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex border-b border-white/10 px-4 pt-1 shrink-0 bg-transparent z-10 sticky top-0 relative items-center">
+                  <div className="flex gap-6 mr-auto">
+                    {["推荐", "收藏"].map((tab) => (
+                      <button 
+                        key={tab}
+                        onClick={() => setVoiceTab(tab as any)}
+                        className={`pb-3 font-bold text-[14px] relative transition-colors ${voiceTab === tab ? "text-white" : "text-white/50"}`}
+                      >
+                        {tab}
+                        {voiceTab === tab && (
+                          <motion.div 
+                            layoutId="voiceTabIndicator"
+                            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-white" 
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col pt-3">
+                  {VOICES_LIST.filter(track => voiceTab === "收藏" ? favoriteVoices.includes(track.title) : true).map((track, i) => {
+                    const isSelected = track.title === selectedVoice;
+                    return (
+                      <div 
+                        key={i} 
+                        className={`flex items-center gap-3 py-3 w-full border-b border-white/5 last:border-0 cursor-pointer active:bg-white/5 rounded-lg px-2 -mx-2 transition-colors ${isSelected ? "" : ""}`}
+                        onClick={() => setSelectedVoice(track.title)}
+                      >
+                        <div className={`w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-white/10 relative ${isSelected ? "border-[2px] border-[#FA2A55]" : ""}`}>
+                          <img src={track.img} alt={track.title} className="w-full h-full object-cover opacity-90" />
+                        </div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[14px] font-bold truncate ${isSelected ? "text-[#FA2A55]" : "text-white"}`}>
+                              {track.title}
+                            </span>
+                            {appliedVoice === track.title && !isSelected && (
+                              <span className="text-[#FA2A55] text-[10px] bg-[#FA2A55]/10 px-1.5 py-0.5 rounded font-bold whitespace-nowrap shrink-0">使用中</span>
+                            )}
+                            {isSelected && (
+                              <div className="flex items-end gap-[2px] h-[10px]">
+                                <div className="w-[3px] h-[4px] bg-[#FA2A55] rounded-full animate-bounce" style={{ animationDelay: "0ms", animationDuration: "600ms" }} />
+                                <div className="w-[3px] h-[8px] bg-[#FA2A55] rounded-full animate-bounce" style={{ animationDelay: "200ms", animationDuration: "600ms" }} />
+                                <div className="w-[3px] h-[6px] bg-[#FA2A55] rounded-full animate-bounce" style={{ animationDelay: "400ms", animationDuration: "600ms" }} />
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[11px] font-medium text-white/50 mt-0.5 truncate">{track.desc} · {track.duration}</span>
+                        </div>
+                        
+                        {isSelected && (
+                          <div className="flex items-center gap-3 shrink-0 ml-2">
+                            <button className="text-white/80 active:scale-95 transition-transform" onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (favoriteVoices.includes(track.title)) {
+                                  setFavoriteVoices(prev => prev.filter(t => t !== track.title));
+                                  showToast("已取消收藏");
+                                } else {
+                                  setFavoriteVoices(prev => [...prev, track.title]);
+                                  showToast("已收藏");
+                                }
+                              }}>
+                              <Star size={20} className={`stroke-[2.5] ${favoriteVoices.includes(track.title) ? "fill-[#FA2A55] stroke-[#FA2A55]" : ""}`} />
+                            </button>
+                            {appliedVoice === track.title ? (
+                              <span className="text-[#FA2A55] text-[13px] font-bold px-2">正在使用</span>
+                            ) : (
+                              <button 
+                                className="bg-[#FA2A55] text-white text-[13px] font-bold px-4 py-1.5 rounded-md active:scale-95 transition-transform"
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setAppliedVoice(track.title);
+                                  setShowVoiceSheet(false); 
+                                  setShowVoice(true);
+                                  showToast("已应用音效"); 
+                                }}
+                              >
+                                使用
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
       </div>
     );
   }
@@ -1189,6 +1597,19 @@ export default function VideoPreview({
       id="video-preview-screen"
       className="absolute inset-0 bg-[#0c1017] z-30 flex flex-col justify-between overflow-hidden rounded-[40px] font-sans"
     >
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.9 }}
+            className="absolute top-24 left-1/2 -translate-x-1/2 z-[999] bg-neutral-950/85 backdrop-blur-md text-white text-[10px] font-semibold px-4 py-2 rounded-xl text-center shadow-lg border border-neutral-800/50 flex items-center gap-1.5 max-w-[280px]"
+          >
+            <span className="truncate">{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       {/* Background Media Representation */}
       <div className="absolute inset-0 w-full h-full">
         <img

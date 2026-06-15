@@ -32,6 +32,7 @@ interface ProposalData {
 
 interface ChatViewProps {
   prompt: string;
+  isDraftMode?: boolean;
   attachedTemplate: VideoTemplate | null;
   selectedRatio: string;
   selectedDuration: string;
@@ -47,6 +48,7 @@ interface ChatViewProps {
 
 export default function TemplateChatView({
   prompt,
+  isDraftMode,
   attachedTemplate,
   selectedRatio,
   selectedDuration,
@@ -175,6 +177,23 @@ export default function TemplateChatView({
   useEffect(() => {
     let active = true;
     const abortController = new AbortController();
+
+    if (isDraftMode) {
+      setIsGenerating(false);
+      setExtraTurns([
+        {
+          id: "draft-msg-1",
+          sender: "user",
+          text: `帮我完善一下这个视频的内容和配图要求：${prompt}`,
+        },
+        {
+          id: "draft-msg-2",
+          sender: "ai",
+          text: `已收到，这部分文案需要相关的素材支持，请上传相关图片或视频。`,
+        }
+      ]);
+      return;
+    }
 
     const fetchScript = async () => {
       const startTime = Date.now();

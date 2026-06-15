@@ -42,7 +42,7 @@ const DEFAULT_BRAND_CONFIG: BrandConfig = {
 interface TemplatePreset {
   id: string;
   title: string;
-  category: "联系名片" | "封面" | "企业荣誉";
+  category: "联系名片" | "封面" | "企业荣誉" | "营销口号" | "水印元素";
   aspectRatio?: "9:16" | "16:9";
   desc: string;
   bgGradient: string;
@@ -160,6 +160,30 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     textColor: "text-white",
     badgeText: "精选",
     coverImage: "/conl2.png",
+  },
+  {
+    id: "temp_slogan_1",
+    title: "营销口号横幅",
+    category: "营销口号",
+    aspectRatio: "16:9",
+    desc: "冲击力极强的营销横幅，快速抓住用户眼球",
+    bgGradient: "from-red-950 to-red-800",
+    pillColor: "bg-red-600 text-white border-red-500",
+    textColor: "text-white",
+    badgeText: "热门",
+    coverImage: "/awa1.png",
+  },
+  {
+    id: "temp_watermark_1",
+    title: "护航水印元素",
+    category: "水印元素",
+    aspectRatio: "9:16",
+    desc: "水样边框，保护原创内容的同时点缀画面",
+    bgGradient: "from-slate-800 to-black",
+    pillColor: "bg-white/10 text-white border-white/20",
+    textColor: "text-white",
+    badgeText: "精选",
+    coverImage: "/contact-cover.png",
   },
 ];
 
@@ -519,6 +543,22 @@ const renderTemplateInner = (presetId: string, config: BrandConfig) => {
         </div>
       );
 
+    case "temp_slogan_1":
+      return (
+        <div
+          className="w-full h-full relative flex items-center justify-center p-4 select-none bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1557683311-eac922347aa1?auto=format&fit=crop&q=80&w=400')",
+          }}
+        >
+          <div className="absolute inset-0 bg-black/30 z-0"></div>
+          <span className="text-white text-base font-black text-center tracking-wider drop-shadow-2xl z-10 leading-relaxed md:text-xl relative max-w-[80%]">
+            {slogan || "极简设计，极致体验"}
+          </span>
+        </div>
+      );
+
     default:
       return (
         <div className="w-full h-full bg-slate-150 text-slate-400 flex items-center justify-center text-[9px] select-none font-bold">
@@ -532,6 +572,10 @@ interface KeyframesTabProps {
   internalTab: "library" | "mine";
   setInternalTab: (tab: "library" | "mine") => void;
   myKeyframes: VideoTemplate[];
+  myLogos: { title: string; url: string }[];
+  setMyLogos: React.Dispatch<React.SetStateAction<{ title: string; url: string }[]>>;
+  mySlogans: { title: string; slogan: string }[];
+  setMySlogans: React.Dispatch<React.SetStateAction<{ title: string; slogan: string }[]>>;
   onSynthesize: (customTemplate: VideoTemplate) => void;
   onPreviewMyKeyframe: (template: VideoTemplate) => void;
   onDeleteKeyframe: (id: string) => void;
@@ -545,6 +589,10 @@ export default function KeyframesTab({
   internalTab,
   setInternalTab,
   myKeyframes,
+  myLogos,
+  setMyLogos,
+  mySlogans,
+  setMySlogans,
   onSynthesize,
   onPreviewMyKeyframe,
   onDeleteKeyframe,
@@ -576,7 +624,7 @@ export default function KeyframesTab({
 
   // Category switching (the three buttons)
   const [activeCategory, setActiveCategory] = useState<
-    "联系名片" | "封面" | "企业荣誉"
+    "联系名片" | "封面" | "企业荣誉" | "营销口号" | "水印元素"
   >("封面");
 
   // Aspect ratio state
@@ -618,7 +666,16 @@ export default function KeyframesTab({
   const keyframeUploadRef = useRef<HTMLInputElement>(null);
   const myLogoUploadRef = useRef<HTMLInputElement>(null);
   const [keyframeUrl, setKeyframeUrl] = useState<string>("");
-  const [myLogo, setMyLogo] = useState<string | null>("/logo1.png");
+  const [showLogoInputPrompt, setShowLogoInputPrompt] = useState(false);
+  const [logoPromptMode, setLogoPromptMode] = useState<"new" | "edit">("new");
+  const [editingLogoIndex, setEditingLogoIndex] = useState<number>(-1);
+  const [tempLogoTitleInput, setTempLogoTitleInput] = useState("");
+  const [tempLogoUrl, setTempLogoUrl] = useState<string>("");
+  const [showSloganInputPrompt, setShowSloganInputPrompt] = useState(false);
+  const [sloganPromptMode, setSloganPromptMode] = useState<"new" | "edit">("new");
+  const [editingSloganIndex, setEditingSloganIndex] = useState<number>(-1);
+  const [tempSloganInput, setTempSloganInput] = useState("");
+  const [tempSloganTitleInput, setTempSloganTitleInput] = useState("");
 
   const saveConfig = (updated: BrandConfig) => {
     localStorage.setItem("xiaolu_compact_brand_v2", JSON.stringify(updated));
@@ -663,13 +720,15 @@ export default function KeyframesTab({
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
-        setMyLogo(event.target.result as string);
+        setTempLogoUrl(event.target.result as string);
       }
     };
     reader.readAsDataURL(file);
   };
 
-  const handleCategoryChange = (cat: "联系名片" | "封面" | "企业荣誉") => {
+  const handleCategoryChange = (
+    cat: "联系名片" | "封面" | "企业荣誉" | "营销口号" | "水印元素",
+  ) => {
     setActiveCategory(cat);
   };
 
@@ -784,256 +843,415 @@ export default function KeyframesTab({
     >
       {/* ==================== UPPER MODULE: "关键帧模版" ==================== */}
       <div className="select-none space-y-4 flex-1 flex flex-col">
-        {internalTab === "library" ? (
-          <>
-            {/* Category Switch Buttons Row */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-none text-[11px] font-bold text-neutral-500 border-b border-neutral-800">
-              {(["封面", "联系名片", "企业荣誉"] as const).map((catName) => (
-                <button
-                  key={catName}
-                  type="button"
-                  onClick={() => handleCategoryChange(catName)}
-                  className={`px-2.5 py-1.5 rounded-xl whitespace-nowrap cursor-pointer transition-all border bg-transparent ${
-                    activeCategory === catName
-                      ? "border-white text-white font-bold"
-                      : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
-                  }`}
-                >
-                  {catName}
-                </button>
-              ))}
-            </div>
+        {/* Category Switch Buttons Row */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-none text-[11px] font-bold text-neutral-500 border-b border-neutral-800 shrink-0">
+          {(
+            [
+              "封面",
+              "联系名片",
+              "企业荣誉",
+              "营销口号",
+              "水印元素",
+            ] as const
+          ).map((catName) => {
+            let activeStyles = "border-white text-white font-bold";
+            let defaultStyles = "bg-transparent border-neutral-700 text-neutral-400 hover:border-neutral-500";
+            if (internalTab === "mine") {
+              activeStyles = "border-blue-500 text-blue-200 font-bold bg-blue-900/50 shadow-sm";
+              defaultStyles = "bg-transparent border-neutral-800 text-slate-500 hover:border-blue-900/80 hover:text-blue-400";
+            }
+            return (
+            <button
+              key={catName}
+              type="button"
+              onClick={() => handleCategoryChange(catName)}
+              className={`px-2.5 py-1.5 rounded-xl whitespace-nowrap cursor-pointer transition-all border ${
+                activeCategory === catName
+                  ? activeStyles
+                  : defaultStyles
+              }`}
+            >
+              {catName}
+            </button>
+            );
+          })}
+        </div>
 
-            {/* Live miniature template choices grid */}
-            <div className="flex gap-1 items-start mt-2.5 pb-2 select-none min-h-[160pt]">
-              {/* Left Column */}
-              <div className="flex-1 flex flex-col gap-1">
-                {PRESET_TEMPLATES.filter((p) => p.category === activeCategory)
-                  .filter((_, i) => i % 2 === 0)
-                  .map((preset) => {
-                    const isSelected = selectedPresetId === preset.id;
-                    return (
-                      <div
-                        key={preset.id}
-                        onClick={() => {
-                          if (!isLoggedIn) {
-                            setShowLoginModal(true);
-                            return;
-                          }
-                          setSelectedPresetId(preset.id);
-                          setExpandedPresetId(preset.id);
-                          setConfigModalStep(1);
-                          setKeyframeUrl("");
-                          setIsConfigModalOpen(true);
-                        }}
-                        className={`group flex flex-col bg-neutral-900 rounded-xl overflow-hidden border cursor-pointer active:scale-[0.99] hover:shadow-2xs transition-all relative select-none ${
-                          isSelected
-                            ? "border-blue-600 ring-[1px] ring-blue-500/20 shadow-md"
-                            : "border-neutral-800 shadow-5xs"
-                        }`}
-                      >
-                        {/* Live template vertical poster thumbnail wrapper with dynamic aspect ratio */}
-                        <div
-                          className={`relative w-full overflow-hidden shrink-0 select-none bg-neutral-800 ${preset.aspectRatio === "16:9" ? "aspect-[16/9]" : "aspect-[9/16]"}`}
-                        >
-                          {preset.coverImage ? (
-                            <img
-                              src={preset.coverImage}
-                              alt={preset.title}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            renderTemplateInner(preset.id, DEFAULT_BRAND_CONFIG)
-                          )}
-
-                          {/* Header Tag Info inside image */}
-                          {usedPresets.includes(preset.id) && (
-                            <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-[9px] rounded-sm font-bold scale-90 origin-top-left z-20 transition-colors bg-blue-600 text-white shadow-sm">
-                              曾用过
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Bottom Bar instead of overlay */}
-                        <div className="px-2 py-2.5 bg-neutral-900 flex flex-1 items-center justify-between">
-                          <h4
-                            className={`text-[10.5px] font-bold tracking-tight truncate ${isSelected ? "text-blue-700" : "text-neutral-200"} flex items-center gap-1`}
-                          >
-                            {preset.title}
-                            {savedPresets.includes(preset.id) && (
-                              <span className="text-[8px] bg-neutral-800 text-neutral-500 px-1 py-0.5 rounded font-normal shrink-0">
-                                已保存
-                              </span>
-                            )}
-                          </h4>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-
-              {/* Right Column */}
-              <div className="flex-1 flex flex-col gap-1">
-                {PRESET_TEMPLATES.filter((p) => p.category === activeCategory)
-                  .filter((_, i) => i % 2 === 1)
-                  .map((preset) => {
-                    const isSelected = selectedPresetId === preset.id;
-                    return (
-                      <div
-                        key={preset.id}
-                        onClick={() => {
-                          if (!isLoggedIn) {
-                            setShowLoginModal(true);
-                            return;
-                          }
-                          setSelectedPresetId(preset.id);
-                          setExpandedPresetId(preset.id);
-                          setConfigModalStep(1);
-                          setKeyframeUrl("");
-                          setIsConfigModalOpen(true);
-                        }}
-                        className={`group flex flex-col bg-neutral-900 rounded-xl overflow-hidden border cursor-pointer active:scale-[0.99] hover:shadow-2xs transition-all relative select-none ${
-                          isSelected
-                            ? "border-blue-600 ring-[1px] ring-blue-500/20 shadow-md"
-                            : "border-neutral-800 shadow-5xs"
-                        }`}
-                      >
-                        {/* Live template vertical poster thumbnail wrapper with dynamic aspect ratio */}
-                        <div
-                          className={`relative w-full overflow-hidden shrink-0 select-none bg-neutral-800 ${preset.aspectRatio === "16:9" ? "aspect-[16/9]" : "aspect-[9/16]"}`}
-                        >
-                          {preset.coverImage ? (
-                            <img
-                              src={preset.coverImage}
-                              alt={preset.title}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            renderTemplateInner(preset.id, DEFAULT_BRAND_CONFIG)
-                          )}
-
-                          {/* Header Tag Info inside image */}
-                          {usedPresets.includes(preset.id) && (
-                            <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-[9px] rounded-sm font-bold scale-90 origin-top-left z-20 transition-colors bg-blue-600 text-white shadow-sm">
-                              曾用过
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Bottom Bar instead of overlay */}
-                        <div className="px-2 py-2.5 bg-neutral-900 flex flex-1 items-center justify-between">
-                          <h4
-                            className={`text-[10.5px] font-bold tracking-tight truncate ${isSelected ? "text-blue-700" : "text-neutral-200"} flex items-center gap-1`}
-                          >
-                            {preset.title}
-                            {savedPresets.includes(preset.id) && (
-                              <span className="text-[8px] bg-neutral-800 text-neutral-500 px-1 py-0.5 rounded font-normal shrink-0">
-                                已保存
-                              </span>
-                            )}
-                          </h4>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="mt-4 max-h-full overflow-y-auto flex-1 flex flex-col">
-            {isLoggedIn && (
-              <div className="mb-4">
-                <div className="flex gap-1 items-start select-none">
-                  {myLogo ? (
-                    <div className="w-[50%] flex flex-col group bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 shadow-5xs relative select-none cursor-pointer">
-                      <div className="relative w-full aspect-[4/3] overflow-hidden shrink-0 select-none bg-neutral-800 p-2 flex items-center justify-center">
-                        <img
-                          src={myLogo}
-                          alt="Company Logo Thumbnail"
-                          className="w-full h-full object-contain"
-                        />
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMyLogo(null);
-                            if (myLogoUploadRef.current)
-                              myLogoUploadRef.current.value = "";
-                          }}
-                          className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/90 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 size={12} className="text-white" />
-                        </div>
-                      </div>
-                      <div className="px-2 py-2.5 flex flex-1 items-center justify-between">
-                        <h4 className="text-[10.5px] font-bold tracking-tight truncate text-neutral-200">
-                          标准企业标徽
-                        </h4>
-                      </div>
-                    </div>
-                  ) : (
-                    <label className="w-[50%] group bg-neutral-900 rounded-xl overflow-hidden border border-[#2c2c2e]/50 shadow-5xs relative select-none cursor-pointer hover:bg-[#252528] transition-colors outline-dashed outline-1 outline-neutral-700 outline-offset-[-1px] flex flex-col">
-                      <div className="relative w-full aspect-[4/3] bg-neutral-900/50 p-2 flex flex-col items-center justify-center text-center gap-1.5 shrink-0">
-                        <Plus size={20} className="text-neutral-500" />
-                        <span className="text-[9px] text-neutral-400 font-medium">
-                          点击上传图片
-                          <br />
-                          (支持 png, jpg, svg)
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/png, image/jpeg, image/svg+xml"
-                          className="hidden"
-                          ref={myLogoUploadRef}
-                          onChange={handleMyLogoUploaded}
-                        />
-                      </div>
-                      <div className="px-2 py-2.5 flex flex-1 items-center justify-between bg-neutral-800/80 border-t border-neutral-800">
-                        <h4 className="text-[10.5px] font-bold tracking-tight truncate text-neutral-500">
-                          标准企业标徽
-                        </h4>
-                      </div>
-                    </label>
-                  )}
+        {activeCategory === "水印元素" && (
+          <div className="mb-4 mt-2">
+            <div className="grid grid-cols-2 gap-1.5 select-none">
+              <div
+                onClick={() => {
+                  setLogoPromptMode("new");
+                  setTempLogoUrl("");
+                  setTempLogoTitleInput("");
+                  setShowLogoInputPrompt(true);
+                  if (myLogoUploadRef.current) myLogoUploadRef.current.value = "";
+                }}
+                className="w-full group bg-neutral-900 rounded-xl overflow-hidden border border-[#2c2c2e]/50 shadow-5xs relative select-none cursor-pointer hover:bg-[#252528] transition-colors outline-dashed outline-1 outline-neutral-700 outline-offset-[-1px] flex flex-col"
+              >
+                <div className="relative w-full aspect-[4/3] bg-neutral-900/50 p-2 flex flex-col items-center justify-center text-center gap-1.5 shrink-0">
+                  <Plus size={20} className="text-neutral-500" />
+                  <span className="text-[9px] text-neutral-400 font-medium">
+                    点击新建
+                    <br />
+                    水印图片元素
+                  </span>
+                </div>
+                <div className="px-2 py-2.5 flex flex-1 items-center justify-between bg-neutral-800/80 border-t border-neutral-800">
+                  <h4 className="text-[10.5px] font-bold tracking-tight truncate text-neutral-500">
+                    新建水印元素
+                  </h4>
                 </div>
               </div>
-            )}
-            <div className="flex flex-col flex-1">
-              {!isLoggedIn || myKeyframes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 flex-1 h-full">
-                  <Sparkles size={24} className="text-slate-300" />
-                  <p className="text-slate-400 text-xs mt-2">
-                    {!isLoggedIn ? (
-                      <>
-                        暂未登录，
-                        <br />
-                        无法查看已保存的关键帧哦！
-                      </>
-                    ) : (
-                      <>
-                        暂无已保存的关键帧，
-                        <br />
-                        快去生成一个吧！
-                      </>
-                    )}
-                  </p>
-                  <button
+              {myLogos.map((logoObj, index) => {
+                const isSelected = config.logoUrl === logoObj.url;
+                return (
+                  <div
+                    key={index}
                     onClick={() => {
                       if (!isLoggedIn) {
                         setShowLoginModal(true);
                         return;
                       }
-                      setInternalTab("library");
+                      updateField("logoUrl", logoObj.url);
                     }}
-                    className="mt-2 text-[10px] bg-neutral-900 border border-neutral-700 text-neutral-400 px-3 py-1.5 rounded-full hover:bg-neutral-800/50"
+                    className={`w-full flex flex-col group bg-neutral-900 rounded-xl overflow-hidden border relative select-none cursor-pointer transition-all ${
+                      isSelected
+                        ? "border-emerald-600 ring-[1px] ring-emerald-500/20 shadow-md"
+                        : "border-[#2c2c2e]/50 hover:border-neutral-600 shadow-5xs"
+                    }`}
                   >
-                    {!isLoggedIn ? "立即登录" : "去生成关键帧"}
-                  </button>
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingLogoIndex(index);
+                        setLogoPromptMode("edit");
+                        setTempLogoUrl(logoObj.url);
+                        setTempLogoTitleInput(logoObj.title);
+                        setShowLogoInputPrompt(true);
+                        if (myLogoUploadRef.current) myLogoUploadRef.current.value = "";
+                      }}
+                      className="relative w-full aspect-[4/3] overflow-hidden shrink-0 select-none bg-neutral-800 p-2 flex items-center justify-center hover:brightness-110 transition-all"
+                    >
+                      <img
+                        src={logoObj.url}
+                        alt={logoObj.title}
+                        className="w-full h-full object-contain"
+                      />
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMyLogos((prev) => prev.filter((_, i) => i !== index));
+                        }}
+                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/90 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={12} className="text-white" />
+                      </div>
+                    </div>
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingLogoIndex(index);
+                        setLogoPromptMode("edit");
+                        setTempLogoUrl(logoObj.url);
+                        setTempLogoTitleInput(logoObj.title);
+                        setShowLogoInputPrompt(true);
+                      }}
+                      className="px-2 py-2.5 flex flex-1 items-center justify-between hover:bg-neutral-800 transition-colors"
+                    >
+                      <h4 className={`text-[10.5px] font-bold tracking-tight truncate ${isSelected ? "text-emerald-500" : "text-neutral-200"}`}>
+                        {logoObj.title}
+                      </h4>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {activeCategory === "营销口号" && (
+          <div className="mb-4 mt-2">
+            <div className="grid grid-cols-2 gap-1.5 select-none">
+              <div
+                onClick={() => {
+                  setSloganPromptMode("new");
+                  setTempSloganInput("");
+                  setShowSloganInputPrompt(true);
+                }}
+                className="w-full group bg-neutral-900 rounded-xl overflow-hidden border border-[#2c2c2e]/50 shadow-5xs relative select-none cursor-pointer hover:bg-[#252528] transition-colors outline-dashed outline-1 outline-neutral-700 outline-offset-[-1px] flex flex-col"
+              >
+                <div className="relative w-full aspect-[4/3] bg-neutral-900/50 p-2 flex flex-col items-center justify-center text-center gap-1.5 shrink-0">
+                  <Plus size={20} className="text-neutral-500" />
+                  <span className="text-[9px] text-neutral-400 font-medium">
+                    点击新建
+                    <br />
+                    文字元素口号
+                  </span>
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-1 select-none">
-                  {myKeyframes.map((kf) => (
+                <div className="px-2 py-2.5 flex flex-1 items-center justify-between bg-neutral-800/80 border-t border-neutral-800">
+                  <h4 className="text-[10.5px] font-bold tracking-tight truncate text-neutral-500">
+                    新建营销口号
+                  </h4>
+                </div>
+              </div>
+              {mySlogans.map((sloganObj, index) => {
+                const isSelected = config.slogan === sloganObj.slogan;
+                return (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        setShowLoginModal(true);
+                        return;
+                      }
+                      updateField("slogan", sloganObj.slogan);
+                    }}
+                    className={`w-full flex flex-col group bg-neutral-900 rounded-xl overflow-hidden border relative select-none cursor-pointer transition-all ${
+                      isSelected
+                        ? "border-blue-600 ring-[1px] ring-blue-500/20 shadow-md"
+                        : "border-[#2c2c2e]/50 hover:border-neutral-600 shadow-5xs"
+                    }`}
+                  >
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingSloganIndex(index);
+                        setSloganPromptMode("edit");
+                        setTempSloganInput(sloganObj.slogan);
+                        setTempSloganTitleInput(sloganObj.title);
+                        setShowSloganInputPrompt(true);
+                      }}
+                      className="relative w-full aspect-[4/3] overflow-hidden shrink-0 select-none bg-gradient-to-br from-red-950 to-red-800 p-2 flex items-center justify-center hover:brightness-110 transition-all font-sans"
+                    >
+                      <span className="text-white text-sm font-bold text-center px-1">
+                        {sloganObj.slogan}
+                      </span>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMySlogans((prev) => prev.filter((_, i) => i !== index));
+                        }}
+                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/90 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={12} className="text-white" />
+                      </div>
+                    </div>
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingSloganIndex(index);
+                        setSloganPromptMode("edit");
+                        setTempSloganInput(sloganObj.slogan);
+                        setTempSloganTitleInput(sloganObj.title);
+                        setShowSloganInputPrompt(true);
+                      }}
+                      className="px-2 py-2.5 flex flex-1 items-center justify-between hover:bg-neutral-800 transition-colors"
+                    >
+                      <h4 className={`text-[10.5px] font-bold tracking-tight truncate ${isSelected ? "text-blue-500" : "text-neutral-200"}`}>
+                        {sloganObj.title}
+                      </h4>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {internalTab === "library" ? (
+          <>
+
+            {/* Live miniature template choices grid */}
+            {activeCategory !== "水印元素" && activeCategory !== "营销口号" && (
+              <div className="flex gap-1 items-start mt-2.5 pb-2 select-none min-h-[160pt]">
+                {/* Left Column */}
+                <div className="flex-1 flex flex-col gap-1">
+                  {PRESET_TEMPLATES.filter((p) => p.category === activeCategory)
+                    .filter((_, i) => i % 2 === 0)
+                    .map((preset) => {
+                      const isSelected = selectedPresetId === preset.id;
+                      return (
+                        <div
+                          key={preset.id}
+                          onClick={() => {
+                            if (!isLoggedIn) {
+                              setShowLoginModal(true);
+                              return;
+                            }
+                            setSelectedPresetId(preset.id);
+                            setExpandedPresetId(preset.id);
+                            setConfigModalStep(1);
+                            setKeyframeUrl("");
+                            setIsConfigModalOpen(true);
+                          }}
+                          className={`group flex flex-col bg-neutral-900 rounded-xl overflow-hidden border cursor-pointer active:scale-[0.99] hover:shadow-2xs transition-all relative select-none ${
+                            isSelected
+                              ? "border-blue-600 ring-[1px] ring-blue-500/20 shadow-md"
+                              : "border-neutral-800 shadow-5xs"
+                          }`}
+                        >
+                          {/* Live template vertical poster thumbnail wrapper with dynamic aspect ratio */}
+                          <div
+                            className={`relative w-full overflow-hidden shrink-0 select-none bg-neutral-800 ${preset.aspectRatio === "16:9" ? "aspect-[16/9]" : "aspect-[9/16]"}`}
+                          >
+                            {preset.coverImage ? (
+                              <img
+                                src={preset.coverImage}
+                                alt={preset.title}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              renderTemplateInner(
+                                preset.id,
+                                DEFAULT_BRAND_CONFIG,
+                              )
+                            )}
+
+                            {/* Header Tag Info inside image */}
+                            {usedPresets.includes(preset.id) && (
+                              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-[9px] rounded-sm font-bold scale-90 origin-top-left z-20 transition-colors bg-blue-600 text-white shadow-sm">
+                                曾用过
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Bottom Bar instead of overlay */}
+                          <div className="px-2 py-2.5 bg-neutral-900 flex flex-1 items-center justify-between">
+                            <h4
+                              className={`text-[10.5px] font-bold tracking-tight truncate ${isSelected ? "text-blue-700" : "text-neutral-200"} flex items-center gap-1`}
+                            >
+                              {preset.title}
+                              {savedPresets.includes(preset.id) && (
+                                <span className="text-[8px] bg-neutral-800 text-neutral-500 px-1 py-0.5 rounded font-normal shrink-0">
+                                  已保存
+                                </span>
+                              )}
+                            </h4>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* Right Column */}
+                <div className="flex-1 flex flex-col gap-1">
+                  {PRESET_TEMPLATES.filter((p) => p.category === activeCategory)
+                    .filter((_, i) => i % 2 === 1)
+                    .map((preset) => {
+                      const isSelected = selectedPresetId === preset.id;
+                      return (
+                        <div
+                          key={preset.id}
+                          onClick={() => {
+                            if (!isLoggedIn) {
+                              setShowLoginModal(true);
+                              return;
+                            }
+                            setSelectedPresetId(preset.id);
+                            setExpandedPresetId(preset.id);
+                            setConfigModalStep(1);
+                            setKeyframeUrl("");
+                            setIsConfigModalOpen(true);
+                          }}
+                          className={`group flex flex-col bg-neutral-900 rounded-xl overflow-hidden border cursor-pointer active:scale-[0.99] hover:shadow-2xs transition-all relative select-none ${
+                            isSelected
+                              ? "border-blue-600 ring-[1px] ring-blue-500/20 shadow-md"
+                              : "border-neutral-800 shadow-5xs"
+                          }`}
+                        >
+                          {/* Live template vertical poster thumbnail wrapper with dynamic aspect ratio */}
+                          <div
+                            className={`relative w-full overflow-hidden shrink-0 select-none bg-neutral-800 ${preset.aspectRatio === "16:9" ? "aspect-[16/9]" : "aspect-[9/16]"}`}
+                          >
+                            {preset.coverImage ? (
+                              <img
+                                src={preset.coverImage}
+                                alt={preset.title}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              renderTemplateInner(
+                                preset.id,
+                                DEFAULT_BRAND_CONFIG,
+                              )
+                            )}
+
+                            {/* Header Tag Info inside image */}
+                            {usedPresets.includes(preset.id) && (
+                              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 text-[9px] rounded-sm font-bold scale-90 origin-top-left z-20 transition-colors bg-blue-600 text-white shadow-sm">
+                                曾用过
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Bottom Bar instead of overlay */}
+                          <div className="px-2 py-2.5 bg-neutral-900 flex flex-1 items-center justify-between">
+                            <h4
+                              className={`text-[10.5px] font-bold tracking-tight truncate ${isSelected ? "text-blue-700" : "text-neutral-200"} flex items-center gap-1`}
+                            >
+                              {preset.title}
+                              {savedPresets.includes(preset.id) && (
+                                <span className="text-[8px] bg-neutral-800 text-neutral-500 px-1 py-0.5 rounded font-normal shrink-0">
+                                  已保存
+                                </span>
+                              )}
+                            </h4>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+          </>
+        ) : (
+          <div className="mt-4 max-h-full overflow-y-auto flex-1 flex flex-col">
+            <div className="flex flex-col flex-1">
+              {(() => {
+                if (activeCategory === "水印元素" || activeCategory === "营销口号") return null;
+                const filteredFrames = myKeyframes.filter((kf) => kf.style === activeCategory);
+                if (!isLoggedIn || filteredFrames.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 flex-1 h-full">
+                      <Sparkles size={24} className="text-slate-300" />
+                      <p className="text-slate-400 text-xs mt-2">
+                        {!isLoggedIn ? (
+                          <>
+                            暂未登录，
+                            <br />
+                            无法查看已保存的关键帧哦！
+                          </>
+                        ) : (
+                          <>
+                            暂无已保存的{activeCategory}关键帧，
+                            <br />
+                            快去生成一个吧！
+                          </>
+                        )}
+                      </p>
+                      <button
+                        onClick={() => {
+                          if (!isLoggedIn) {
+                            setShowLoginModal(true);
+                            return;
+                          }
+                          setInternalTab("library");
+                        }}
+                        className="mt-2 text-[10px] bg-neutral-900 border border-neutral-700 text-neutral-400 px-3 py-1.5 rounded-full hover:bg-neutral-800/50"
+                      >
+                        {!isLoggedIn ? "立即登录" : "去生成关键帧"}
+                      </button>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="grid grid-cols-2 gap-1 select-none">
+                    {filteredFrames.map((kf) => (
                     <div
                       key={kf.id}
                       onClick={() => onPreviewMyKeyframe(kf)}
@@ -1041,7 +1259,7 @@ export default function KeyframesTab({
                     >
                       <div className="relative w-full aspect-[9/16] overflow-hidden bg-neutral-800 shrink-0">
                         <img
-                          src="/mock.png"
+                          src={kf.image}
                           alt={kf.title}
                           className="w-full h-full object-cover"
                         />
@@ -1116,7 +1334,8 @@ export default function KeyframesTab({
                     </div>
                   ))}
                 </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         )}
@@ -1140,8 +1359,8 @@ export default function KeyframesTab({
             <div className="w-8 shrink-0"></div>
           </div>
 
-          <div className="absolute inset-0 w-full h-full pointer-events-none">
-            {activePreset.coverImage ? (
+          <div className="absolute inset-0 w-full h-full pointer-events-none z-0">
+            {activePreset.coverImage && activeCategory !== "营销口号" ? (
               <img
                 src={activePreset.coverImage}
                 alt={activePreset.title}
@@ -1149,9 +1368,9 @@ export default function KeyframesTab({
                 referrerPolicy="no-referrer"
               />
             ) : (
-              renderTemplateInner(activePreset.id, DEFAULT_BRAND_CONFIG)
+              renderTemplateInner(activePreset.id, config)
             )}
-            <div className="absolute inset-0 bg-black/20" />
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
           </div>
 
           {!isConfigModalOpen && (
@@ -1165,6 +1384,163 @@ export default function KeyframesTab({
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Custom Logo Input Modal */}
+      {showLogoInputPrompt && (
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 select-none animate-fade-in px-6">
+          <div className="bg-neutral-900 rounded-3xl p-5 w-full max-w-[320px] shadow-2xl relative animate-scale-up border border-neutral-800">
+            <h3 className="text-sm font-bold text-white mb-4">
+              {logoPromptMode === "edit" ? "修改水印元素" : "新建水印元素"}
+            </h3>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="text-[10px] text-neutral-400 font-bold mb-1.5 block">上传图片</label>
+                <div 
+                  className="h-24 w-full bg-neutral-800/80 rounded-xl border border-neutral-700 hover:border-blue-500 overflow-hidden flex items-center justify-center relative cursor-pointer transition-all" 
+                  onClick={() => myLogoUploadRef.current?.click()}
+                >
+                  {tempLogoUrl ? (
+                    <img src={tempLogoUrl} alt="Preview" className="w-full h-full object-contain p-2" />
+                  ) : (
+                    <div className="text-neutral-500 flex flex-col items-center">
+                      <Plus size={20} className="mb-1" />
+                      <span className="text-[10px] font-bold">点击上传图片</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/svg+xml"
+                    className="hidden"
+                    ref={myLogoUploadRef}
+                    onChange={handleMyLogoUploaded}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-neutral-400 font-bold mb-1.5 block">名称</label>
+                <input
+                  type="text"
+                  placeholder="例如：标准企业标徽"
+                  value={tempLogoTitleInput}
+                  onChange={(e) => setTempLogoTitleInput(e.target.value)}
+                  className="w-full bg-neutral-800/80 text-white placeholder-neutral-500 text-xs rounded-xl px-3 outline-none border border-neutral-700 focus:border-blue-500 transition-all font-sans font-bold py-2.5"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setShowLogoInputPrompt(false)}
+                className="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-full text-xs font-bold transition-all"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  if (tempLogoUrl) {
+                    const titleVal = tempLogoTitleInput.trim() || "自定义水印";
+                    if (logoPromptMode === "new") {
+                      setMyLogos((prev) => [...prev, { title: titleVal, url: tempLogoUrl }]);
+                    } else if (editingLogoIndex >= 0) {
+                      setMyLogos((prev) => prev.map((l, i) => i === editingLogoIndex ? { title: titleVal, url: tempLogoUrl } : l));
+                      if (config.logoUrl === myLogos[editingLogoIndex].url) {
+                        updateField("logoUrl", tempLogoUrl);
+                      }
+                    }
+                    setShowLogoInputPrompt(false);
+                  }
+                }}
+                disabled={!tempLogoUrl}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white shadow shadow-blue-600/30 rounded-full text-xs font-bold transition-all disabled:opacity-50"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Slogan Input Modal */}
+      {showSloganInputPrompt && (
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 select-none animate-fade-in px-6">
+          <div className="bg-neutral-900 rounded-3xl p-5 w-full max-w-[320px] shadow-2xl relative animate-scale-up border border-neutral-800">
+            <h3 className="text-sm font-bold text-white mb-4">
+              {sloganPromptMode === "edit" ? "修改营销口号" : "新建营销口号"}
+            </h3>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="text-[10px] text-neutral-400 font-bold mb-1.5 block">口号内容</label>
+                <textarea
+                  autoFocus
+                  rows={3}
+                  placeholder="例如：极简设计，极致体验"
+                  value={tempSloganInput}
+                  onChange={(e) => setTempSloganInput(e.target.value)}
+                  className="w-full bg-neutral-800/80 text-white placeholder-neutral-500 text-xs rounded-xl px-3 outline-none border border-neutral-700 focus:border-blue-500 transition-all font-sans font-bold py-3 resize-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && tempSloganInput.trim()) {
+                      e.preventDefault();
+                      const val = tempSloganInput.trim();
+                      const titleVal = tempSloganTitleInput.trim() || "自定义营销口号";
+                      if (sloganPromptMode === "new") {
+                        setMySlogans((prev) => [...prev, { title: titleVal, slogan: val }]);
+                      } else if (editingSloganIndex >= 0) {
+                        setMySlogans((prev) => prev.map((s, i) => i === editingSloganIndex ? { title: titleVal, slogan: val } : s));
+                        if (config.slogan === mySlogans[editingSloganIndex].slogan) {
+                          updateField("slogan", val);
+                        }
+                      }
+                      setShowSloganInputPrompt(false);
+                    }
+                  }}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-neutral-400 font-bold mb-1.5 block">名称</label>
+                <input
+                  type="text"
+                  placeholder="例如：主打口号"
+                  value={tempSloganTitleInput}
+                  onChange={(e) => setTempSloganTitleInput(e.target.value)}
+                  className="w-full bg-neutral-800/80 text-white placeholder-neutral-500 text-xs rounded-xl px-3 outline-none border border-neutral-700 focus:border-blue-500 transition-all font-sans font-bold py-2.5"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setShowSloganInputPrompt(false)}
+                className="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-full text-xs font-bold transition-all"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  if (tempSloganInput.trim()) {
+                    const val = tempSloganInput.trim();
+                    const titleVal = tempSloganTitleInput.trim() || "自定义营销口号";
+                    if (sloganPromptMode === "new") {
+                      setMySlogans((prev) => [...prev, { title: titleVal, slogan: val }]);
+                    } else if (editingSloganIndex >= 0) {
+                      setMySlogans((prev) => prev.map((s, i) => i === editingSloganIndex ? { title: titleVal, slogan: val } : s));
+                      if (config.slogan === mySlogans[editingSloganIndex].slogan) {
+                        updateField("slogan", val);
+                      }
+                    }
+                    setShowSloganInputPrompt(false);
+                  }
+                }}
+                disabled={!tempSloganInput.trim()}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white shadow shadow-blue-600/30 rounded-full text-xs font-bold transition-all disabled:opacity-50"
+              >
+                确认
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

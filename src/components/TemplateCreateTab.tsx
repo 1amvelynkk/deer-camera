@@ -24,6 +24,8 @@ import { VoiceRecordingOverlay } from "./VoiceRecordingOverlay";
 interface TemplateCreateTabProps {
   template: VideoTemplate;
   myKeyframes?: VideoTemplate[];
+  myLogos?: { title: string; url: string }[];
+  mySlogans?: { title: string; slogan: string }[];
   selectedKeyframes?: VideoTemplate[];
   onAddKeyframes?: (kfs: VideoTemplate[]) => void;
   onRemoveKeyframe?: (id: string) => void;
@@ -48,6 +50,8 @@ export default function TemplateCreateTab({
   isLoggedIn,
   setShowLoginModal,
   myKeyframes = [],
+  myLogos = [],
+  mySlogans = [],
   selectedKeyframes = [],
   onAddKeyframes,
   onRemoveKeyframe,
@@ -58,6 +62,7 @@ export default function TemplateCreateTab({
   const [inputText, setInputText] = useState(template.description || template.title || "");
   const [showKeyframeModal, setShowKeyframeModal] = useState(false);
   const [localSelectedKfs, setLocalSelectedKfs] = useState<VideoTemplate[]>([]);
+  const [modalActiveCategory, setModalActiveCategory] = useState<"封面" | "企业荣誉" | "联系名片" | "营销口号" | "水印元素">("封面");
 
   React.useEffect(() => {
     if (showKeyframeModal) {
@@ -462,19 +467,155 @@ export default function TemplateCreateTab({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 bg-[#1c1c1e]">
-              {myKeyframes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center space-y-4 pb-10">
-                  <Sparkles size={32} className="text-white/20" />
-                  <p className="text-white/50 text-xs mt-2">
-                    您还没有保存的关键帧
-                  </p>
-                </div>
-              ) : (
+            <div className="flex-1 overflow-y-auto p-5 bg-[#1c1c1e] flex flex-col">
+              <div className="flex gap-1.5 overflow-x-auto pb-3 mb-2 scrollbar-none text-[11px] font-bold shrink-0">
+                {(["封面", "联系名片", "企业荣誉", "营销口号", "水印元素"] as const).map((catName) => {
+                  let activeStyles = "border-blue-500 text-blue-200 font-bold bg-blue-900/50 shadow-sm";
+                  let defaultStyles = "bg-transparent border-neutral-800 text-slate-400 hover:border-blue-900/80 hover:text-blue-400";
+                  return (
+                    <button
+                      key={catName}
+                      type="button"
+                      onClick={() => setModalActiveCategory(catName)}
+                      className={`px-3 py-1.5 rounded-xl whitespace-nowrap cursor-pointer transition-all border ${
+                        modalActiveCategory === catName ? activeStyles : defaultStyles
+                      }`}
+                    >
+                      {catName}
+                    </button>
+                  );
+                })}
+              </div>
+              {(() => {
+                if (modalActiveCategory === "水印元素") {
+                  if (myLogos.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 flex-1 h-full">
+                        <Sparkles size={24} className="text-white/20" />
+                        <p className="text-white/50 text-xs mt-2">暂无已保存的水印元素关键帧</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="flex flex-col h-full">
+                      <div className="flex-1 overflow-y-auto pb-4">
+                        <div className="grid grid-cols-2 gap-3 pb-10">
+                          {myLogos.map((logoObj, index) => {
+                            const dummyKf: VideoTemplate = {
+                              id: `logo_${index}`,
+                              title: logoObj.title,
+                              style: "水印元素",
+                              image: logoObj.url,
+                              stats: "", description: "", durationSec: 0, tags: []
+                            };
+                            return (
+                              <div
+                                key={`logo_${index}`}
+                                onClick={() => {
+                                  setLocalSelectedKfs((prev) =>
+                                    prev.some((p) => p.id === dummyKf.id)
+                                      ? prev.filter((p) => p.id !== dummyKf.id)
+                                      : [...prev, dummyKf],
+                                  );
+                                }}
+                                className={`group bg-[#2c2c2e] rounded-xl overflow-hidden border cursor-pointer active:scale-[0.98] transition-all relative flex flex-col shadow-sm ${localSelectedKfs.some((p) => p.id === dummyKf.id) ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md" : "border-white/10 hover:border-blue-500/50"}`}
+                              >
+                                <div className="relative w-full aspect-[4/3] overflow-hidden bg-white shrink-0 p-3 flex items-center justify-center">
+                                  <img src={logoObj.url} alt={logoObj.title} className="w-full h-full object-contain" />
+                                </div>
+                                <div className="px-2.5 py-2.5 bg-[#2c2c2e] flex items-center justify-between border-t border-white/5">
+                                  <h4 className="text-[11px] font-bold text-white/90 tracking-tight truncate flex-1">
+                                    {logoObj.title}
+                                  </h4>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex mt-2 shrink-0 pb-2">
+                        <button type="button" onClick={() => { setShowKeyframeModal(false); if (onAddKeyframes) { onAddKeyframes(localSelectedKfs); } }} className="w-full h-11 rounded-xl font-bold text-[13px] transition-all flex items-center justify-center gap-2 shadow-md bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white shadow-blue-600/20 cursor-pointer">
+                          <span>确认选择</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (modalActiveCategory === "营销口号") {
+                  if (mySlogans.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 flex-1 h-full">
+                        <Sparkles size={24} className="text-white/20" />
+                        <p className="text-white/50 text-xs mt-2">暂无已保存的营销口号关键帧</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="flex flex-col h-full">
+                      <div className="flex-1 overflow-y-auto pb-4">
+                        <div className="grid grid-cols-2 gap-3 pb-10">
+                          {mySlogans.map((sloganObj, index) => {
+                            const dummyKf: VideoTemplate = {
+                              id: `slogan_${index}`,
+                              title: sloganObj.title,
+                              style: "营销口号",
+                              image: "/slogan-mock.png", // Doesn't matter
+                              description: sloganObj.slogan,
+                              stats: "", durationSec: 0, tags: []
+                            };
+                            return (
+                              <div
+                                key={`slogan_${index}`}
+                                onClick={() => {
+                                  setLocalSelectedKfs((prev) =>
+                                    prev.some((p) => p.id === dummyKf.id)
+                                      ? prev.filter((p) => p.id !== dummyKf.id)
+                                      : [...prev, dummyKf],
+                                  );
+                                }}
+                                className={`group bg-[#2c2c2e] rounded-xl overflow-hidden border cursor-pointer active:scale-[0.98] transition-all relative flex flex-col shadow-sm ${localSelectedKfs.some((p) => p.id === dummyKf.id) ? "border-blue-500 ring-2 ring-blue-500/30 shadow-md" : "border-white/10 hover:border-blue-500/50"}`}
+                              >
+                                <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-red-950 to-red-800 shrink-0 p-3 flex flex-col justify-center gap-1 font-sans">
+                                  <span className="text-white text-[12px] font-bold text-center leading-snug line-clamp-3">
+                                    {sloganObj.slogan}
+                                  </span>
+                                </div>
+                                <div className="px-2.5 py-2.5 bg-[#2c2c2e] flex items-center justify-between border-t border-white/5">
+                                  <h4 className="text-[11px] font-bold text-white/90 tracking-tight truncate flex-1">
+                                    {sloganObj.title}
+                                  </h4>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex mt-2 shrink-0 pb-2">
+                        <button type="button" onClick={() => { setShowKeyframeModal(false); if (onAddKeyframes) { onAddKeyframes(localSelectedKfs); } }} className="w-full h-11 rounded-xl font-bold text-[13px] transition-all flex items-center justify-center gap-2 shadow-md bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white shadow-blue-600/20 cursor-pointer">
+                          <span>确认选择</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const filteredFrames = myKeyframes.filter((kf) => kf.style === modalActiveCategory);
+                if (filteredFrames.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 flex-1 h-full">
+                      <Sparkles size={24} className="text-white/20" />
+                      <p className="text-white/50 text-xs mt-2">
+                        暂无已保存的{modalActiveCategory}关键帧
+                      </p>
+                    </div>
+                  );
+                }
+                return (
                 <div className="flex flex-col h-full">
                   <div className="flex-1 overflow-y-auto pb-4">
                     <div className="grid grid-cols-3 gap-3 pb-10">
-                      {myKeyframes.map((kf) => (
+                      {filteredFrames.map((kf) => (
                         <div
                           key={kf.id}
                           onClick={() => {
@@ -521,7 +662,8 @@ export default function TemplateCreateTab({
                     </button>
                   </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         </div>

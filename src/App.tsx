@@ -69,6 +69,7 @@ export default function App() {
   const [chatDuration, setChatDuration] = useState<string>("10-20s");
   const [attachedTemplate, setAttachedTemplate] =
     useState<VideoTemplate | null>(GlassBuildingTemplate);
+  const [chatDraftMode, setChatDraftMode] = useState<boolean>(false);
 
   // My Keyframes State
   const [myKeyframes, setMyKeyframes] = useState<VideoTemplate[]>(() => {
@@ -98,6 +99,11 @@ export default function App() {
     } catch {}
     return [];
   });
+
+  const [myLogos, setMyLogos] = useState<{ title: string; url: string }[]>([
+    { title: "标准企业标徽", url: "/logo1.png" },
+  ]);
+  const [mySlogans, setMySlogans] = useState<{ title: string; slogan: string }[]>([]);
 
   // Keyframes Tab internal state
   const [keyframesInternalTab, setKeyframesInternalTab] = useState<
@@ -618,6 +624,10 @@ export default function App() {
                   internalTab={keyframesInternalTab}
                   setInternalTab={setKeyframesInternalTab}
                   myKeyframes={myKeyframes}
+                  myLogos={myLogos}
+                  setMyLogos={setMyLogos}
+                  mySlogans={mySlogans}
+                  setMySlogans={setMySlogans}
                   onFullScreenChange={setIsKeyframesFullScreen}
                   onPreviewMyKeyframe={(t) => {
                     setIsPreviewingMyKeyframe(true);
@@ -672,6 +682,12 @@ export default function App() {
                   setShowLoginModal={setShowLoginModal}
                   exports={exports}
                   setExports={setExports}
+                  onRestoreDraft={(title) => {
+                    setChatDraftMode(true);
+                    setChatPrompt(title);
+                    setAttachedTemplate(null);
+                    setCurrentTab("template");
+                  }}
                 />
               )}
             </>
@@ -682,6 +698,7 @@ export default function App() {
             attachedTemplate ? (
               <TemplateChatView
                 prompt={chatPrompt}
+                isDraftMode={chatDraftMode}
                 attachedTemplate={attachedTemplate}
                 selectedRatio={chatRatio}
                 selectedDuration={chatDuration}
@@ -695,6 +712,7 @@ export default function App() {
                 onBack={() => {
                   setChatPrompt(null);
                   setTemplateSelectedKeyframes([]);
+                  setChatDraftMode(false);
                 }}
                 onMaterialModalOpen={() => setShowMaterialModal(true)}
                 onKeyframeModalOpen={() => setShowSelectKeyframeModal(true)}
@@ -702,6 +720,7 @@ export default function App() {
                 onGoToRenderingBox={() => {
                   setChatPrompt(null);
                   setTemplateSelectedKeyframes([]);
+                  setChatDraftMode(false);
                   setCurrentTab("mine");
                   setMyTabTarget("rendering");
                   setActivePreviewTemplate(null);
@@ -710,6 +729,7 @@ export default function App() {
             ) : (
               <ChatView
                 prompt={chatPrompt}
+                isDraftMode={chatDraftMode}
                 attachedTemplate={attachedTemplate}
                 selectedRatio={chatRatio}
                 selectedDuration={chatDuration}
@@ -723,6 +743,7 @@ export default function App() {
                 onBack={() => {
                   setChatPrompt(null);
                   setCreateSelectedKeyframes([]);
+                  setChatDraftMode(false);
                 }}
                 onMaterialModalOpen={() => setShowMaterialModal(true)}
                 onKeyframeModalOpen={() => setShowSelectKeyframeModal(true)}
@@ -730,6 +751,7 @@ export default function App() {
                 onGoToRenderingBox={() => {
                   setChatPrompt(null);
                   setCreateSelectedKeyframes([]);
+                  setChatDraftMode(false);
                   setCurrentTab("mine");
                   setMyTabTarget("rendering");
                   setActivePreviewTemplate(null);
@@ -745,6 +767,8 @@ export default function App() {
                 template={activePreviewTemplate}
                 onStartChat={handleStartChat}
                 myKeyframes={myKeyframes}
+                myLogos={myLogos}
+                mySlogans={mySlogans}
                 selectedKeyframes={templateSelectedKeyframes}
                 onAddKeyframes={(kfs) => {
                   setTemplateSelectedKeyframes((prev) => {
@@ -895,6 +919,8 @@ export default function App() {
               setIsSequencedGeneration(false);
             }}
             myKeyframes={myKeyframes}
+            myLogos={myLogos}
+            mySlogans={mySlogans}
             onSelect={handleGenerateFromKeyframe}
             onDeleteKeyframe={(id) => {
               const updated = myKeyframes.filter((kf) => kf.id !== id);
