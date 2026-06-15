@@ -565,7 +565,11 @@ export default function ChatView({
                   )}
                 </div>
 
-                <p>关于您上传的产品，在分镜中需要具体参数、型号，请您在对话框回答我。</p>
+                {hasUploadedContent ? (
+                  <p>素材信息充足，如果无需补充，您可以直接点击跳过进行下一步。</p>
+                ) : (
+                  <p>关于您上传的产品，在分镜中需要具体参数、型号，请您在对话框回答我。</p>
+                )}
               </div>
 
               {/* Options Trigger at the bottom */}

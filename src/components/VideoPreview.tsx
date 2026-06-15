@@ -288,6 +288,11 @@ export default function VideoPreview({
   const subtitleRef = useRef<HTMLDivElement>(null);
   const [showSaveKeyframeOverlay, setShowSaveKeyframeOverlay] = useState(false);
   const [keyframeScreenshot, setKeyframeScreenshot] = useState<string>("");
+  const [savedKeyframeCategory, setSavedKeyframeCategory] = useState<string>("");
+  const [isKeyframeSavedInOverlay, setIsKeyframeSavedInOverlay] = useState(false);
+  const [pendingKeyframeSaveParams, setPendingKeyframeSaveParams] = useState<[string, string, string, string] | null>(null);
+
+  const [pendingKeyframeClickData, setPendingKeyframeClickData] = useState<string | null>(null);
 
   const transformState = useRef({
     isTransforming: false,
@@ -447,6 +452,59 @@ export default function VideoPreview({
               <span className="truncate">{toastMessage}</span>
             </motion.div>
           )}
+          {showSaveKeyframeOverlay && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="absolute inset-[10%] flex flex-col items-center justify-center z-[1000] pointer-events-auto"
+            >
+              <div className="bg-black/60 backdrop-blur-3xl p-5 rounded-[28px] border border-white/20 shadow-2xl flex flex-col items-center gap-4 relative">
+                {!isKeyframeSavedInOverlay && (
+                  <button 
+                    className="absolute top-3 right-3 p-1.5 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                    onClick={() => {
+                      setShowSaveKeyframeOverlay(false);
+                      setIsPlaying(true);
+                      setPendingKeyframeSaveParams(null);
+                      setPendingKeyframeClickData(null);
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+                {keyframeScreenshot && (
+                  <img src={keyframeScreenshot} className="w-[240px] aspect-[3/4] rounded-2xl object-cover shadow-md mt-2" />
+                )}
+                {isKeyframeSavedInOverlay ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-sm font-bold tracking-wide">已保存到我的关键帧 - {savedKeyframeCategory}</span>
+                  </div>
+                ) : (
+                  <button 
+                    className="px-6 py-2.5 bg-blue-600 active:scale-95 transition-transform rounded-full text-white font-bold text-[14px] w-full"
+                    onClick={() => {
+                      if (onSaveKeyframe && pendingKeyframeSaveParams) {
+                         onSaveKeyframe(...pendingKeyframeSaveParams);
+                      }
+                      if (pendingKeyframeClickData) {
+                         setClickedFrames(prev => [...prev, pendingKeyframeClickData]);
+                         setPendingKeyframeClickData(null);
+                      }
+                      setIsKeyframeSavedInOverlay(true);
+                      setTimeout(() => {
+                         setShowSaveKeyframeOverlay(false);
+                         setIsPlaying(true);
+                         setIsKeyframeSavedInOverlay(false);
+                      }, 2000);
+                    }}
+                  >
+                    保存
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         <div className="relative z-10 px-6 pt-11 pb-3 flex items-center justify-between border-b border-white/10 shrink-0 bg-[#18181b] shadow-sm">
@@ -521,7 +579,6 @@ export default function VideoPreview({
                           onClick={(e) => {
                             e.stopPropagation();
                             if (isClicked) return;
-                            setClickedFrames(prev => [...prev, `${activeSegmentIndex}-${item.label}`]);
                             let imgStr = currentSegment?.image || "";
                             if (videoRef.current) {
                               try {
@@ -535,7 +592,13 @@ export default function VideoPreview({
                                 }
                               } catch (err) {}
                             }
-                            onSaveKeyframe(`关键帧截图-${currentSegment?.id}-${item.label}`, currentSegment?.text || "", imgStr, item.category);
+                            setPendingKeyframeSaveParams([`关键帧截图-${currentSegment?.id}-${item.label}`, currentSegment?.text || "", imgStr, item.category]);
+                            setPendingKeyframeClickData(`${activeSegmentIndex}-${item.label}`);
+                            setIsPlaying(false);
+                            setKeyframeScreenshot("https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&q=80&w=600&h=800");
+                            setSavedKeyframeCategory(item.category);
+                            setIsKeyframeSavedInOverlay(false);
+                            setShowSaveKeyframeOverlay(true);
                           }}
                         >
                           <div className="relative">
@@ -1606,6 +1669,59 @@ export default function VideoPreview({
             className="absolute top-24 left-1/2 -translate-x-1/2 z-[999] bg-neutral-950/85 backdrop-blur-md text-white text-[10px] font-semibold px-4 py-2 rounded-xl text-center shadow-lg border border-neutral-800/50 flex items-center gap-1.5 max-w-[280px]"
           >
             <span className="truncate">{toastMessage}</span>
+          </motion.div>
+        )}
+        {showSaveKeyframeOverlay && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="absolute inset-[10%] flex flex-col items-center justify-center z-[1000] pointer-events-auto"
+          >
+            <div className="bg-black/60 backdrop-blur-3xl p-5 rounded-[28px] border border-white/20 shadow-2xl flex flex-col items-center gap-4 relative">
+              {!isKeyframeSavedInOverlay && (
+                <button 
+                  className="absolute top-3 right-3 p-1.5 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                  onClick={() => {
+                    setShowSaveKeyframeOverlay(false);
+                    setIsPlaying(true);
+                    setPendingKeyframeSaveParams(null);
+                    setPendingKeyframeClickData(null);
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+              {keyframeScreenshot && (
+                <img src={keyframeScreenshot} className="w-[240px] aspect-[3/4] rounded-2xl object-cover shadow-md mt-2" />
+              )}
+              {isKeyframeSavedInOverlay ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-white text-sm font-bold tracking-wide">已保存到我的关键帧 - {savedKeyframeCategory}</span>
+                </div>
+              ) : (
+                <button 
+                  className="px-6 py-2.5 bg-blue-600 active:scale-95 transition-transform rounded-full text-white font-bold text-[14px] w-full"
+                  onClick={() => {
+                    if (onSaveKeyframe && pendingKeyframeSaveParams) {
+                       onSaveKeyframe(...pendingKeyframeSaveParams);
+                    }
+                    if (pendingKeyframeClickData) {
+                       setClickedFrames(prev => [...prev, pendingKeyframeClickData]);
+                       setPendingKeyframeClickData(null);
+                    }
+                    setIsKeyframeSavedInOverlay(true);
+                    setTimeout(() => {
+                       setShowSaveKeyframeOverlay(false);
+                       setIsPlaying(true);
+                       setIsKeyframeSavedInOverlay(false);
+                    }, 2000);
+                  }}
+                >
+                  保存
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

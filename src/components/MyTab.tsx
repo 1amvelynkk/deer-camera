@@ -37,17 +37,9 @@ interface MyTabProps {
   setIsLoggedIn: (v: boolean) => void;
   showLoginModal: boolean;
   setShowLoginModal: (v: boolean) => void;
-  initialTab?: "rendering" | "exports" | "drafts" | "favorites";
+  initialTab?: "rendering" | "exports" | "favorites";
   exports: ExportItem[];
   setExports: React.Dispatch<React.SetStateAction<ExportItem[]>>;
-  onRestoreDraft?: (title: string) => void;
-}
-
-interface DraftItem {
-  id: string;
-  title: string;
-  style: string;
-  updatedAt: string;
 }
 
 interface RenderItem {
@@ -57,7 +49,7 @@ interface RenderItem {
   status: "rendering" | "queued" | "paused";
 }
 
-export default function MyTab({ creationsCount, onSelectTemplate, favorites, onToggleFavorite, isLoggedIn, setIsLoggedIn, showLoginModal, setShowLoginModal, initialTab, exports, setExports, onRestoreDraft }: MyTabProps) {
+export default function MyTab({ creationsCount, onSelectTemplate, favorites, onToggleFavorite, isLoggedIn, setIsLoggedIn, showLoginModal, setShowLoginModal, initialTab, exports, setExports }: MyTabProps) {
   // 1. Account Settings States
   const [userName, setUserName] = useState<string>(() => {
     return localStorage.getItem("xiaolu_user_nickname") || "华康数智媒介专家";
@@ -85,8 +77,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
   const [showContactModal, setShowContactModal] = useState<boolean>(false);
   const [showInvoicingModal, setShowInvoicingModal] = useState<boolean>(false);
   const [showAllExportsModal, setShowAllExportsModal] = useState<boolean>(false);
-  const [showAllDraftsModal, setShowAllDraftsModal] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"rendering" | "exports" | "drafts" | "favorites">(initialTab || "rendering");
+  const [activeTab, setActiveTab] = useState<"rendering" | "exports" | "favorites">(initialTab || "rendering");
 
   useEffect(() => {
     if (initialTab) {
@@ -100,13 +91,6 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
     { id: "render-2", title: "高净空气流体力学制药车间实景", progress: 0, status: "queued" },
     { id: "render-3", title: "华康医药产品宣发视频1", progress: 0, status: "queued" },
     { id: "render-4", title: "华康医药工厂实力展示", progress: 0, status: "queued" }
-  ]);
-
-  // 4. Drafts Box
-  const [drafts, setDrafts] = useState<DraftItem[]>([
-    { id: "draft-1", title: "华康药业十万级净化无菌车间推介案", style: "智慧工厂风", updatedAt: "今天 14:22" },
-    { id: "draft-2", title: "口服液包装全自动线高能视觉脚本", style: "科技先锋风", updatedAt: "昨天 09:15" },
-    { id: "draft-3", title: "深海天然原料提取科研背书视频案", style: "极简高端风", updatedAt: "05-24" }
   ]);
 
   // 5. Export History Records 
@@ -216,12 +200,6 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
     triggerToast(`🗑️ 已中止【${name}】的后台合成任务`);
   };
 
-  const handleDeleteDraft = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDrafts(prev => prev.filter(d => d.id !== id));
-    triggerToast("🗑️ 草稿已移入回收站");
-  };
-
   const handleCopyDownloadUrl = (title: string) => {
     const fakeUrl = `https://xiaolu-storage.com/export/${Date.now().toString(36)}.mp4`;
     navigator.clipboard.writeText(fakeUrl);
@@ -230,7 +208,6 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
 
   const displayRenders = isLoggedIn ? renders : [];
   const displayExports = isLoggedIn ? exports : [];
-  const displayDrafts = isLoggedIn ? drafts : [];
   const displayFavorites = isLoggedIn ? favorites : [];
 
   return (
@@ -407,10 +384,6 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                   <Download size={16} />
                   <span>已生成</span>
                 </button>
-                <button onClick={() => setActiveTab('drafts')} className={`flex items-center gap-1.5 text-[12px] pb-3 -mb-[2px] border-b-[2px] transition-colors relative z-10 outline-none [-webkit-tap-highlight-color:transparent] ${activeTab === 'drafts'? 'text-white font-bold border-white' : 'text-neutral-500 border-transparent'}`}>
-                  <Layers size={16} />
-                  <span>草稿箱</span>
-                </button>
                 <button onClick={() => setActiveTab('favorites')} className={`flex items-center gap-1.5 text-[12px] pb-3 -mb-[2px] border-b-[2px] transition-colors relative z-10 outline-none [-webkit-tap-highlight-color:transparent] ${activeTab === 'favorites'? 'text-[#facc15] font-bold border-[#facc15]' : 'text-neutral-500 border-transparent'}`}>
                   <Star size={16} className={activeTab === 'favorites' ? "fill-[#facc15]" : ""} />
                   <span>收藏</span>
@@ -516,52 +489,6 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                             <Trash2 size={10} />
                           </button>
                        </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-          )}
-
-          {activeTab === 'drafts' && (
-            !isLoggedIn ? (
-              <div className="text-center flex-1 flex flex-col justify-center items-center text-neutral-500 text-[10px] space-y-1 mx-1 mt-1 mb-2">
-                <p>暂未登录，无法查看记录哦！</p>
-              </div>
-            ) : displayDrafts.length === 0 ? (
-              <div className="text-center flex-1 flex flex-col justify-center items-center text-neutral-500 text-[10px] space-y-1 mx-1 mt-1 mb-2">
-                <p>暂无保存的草稿，新的创作之旅等您开启</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-[1px] mt-0.5">
-                {displayDrafts.map(draft => (
-                  <div 
-                    key={draft.id} 
-                    onClick={() => {
-                      triggerToast(`正在恢复草稿：${draft.title}，已为您填充对白！`);
-                      if (onRestoreDraft) {
-                        onRestoreDraft(draft.title);
-                      }
-                    }}
-                    className="group cursor-pointer relative aspect-[3/4] bg-neutral-800 shrink-0 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-700/50 to-neutral-900 border border-neutral-800/50"></div>
-                    <div className="absolute inset-0 p-2 flex flex-col justify-between">
-                      <div>
-                        <span className="text-[11px] font-bold text-white line-clamp-3 leading-snug">{draft.title}</span>
-                      </div>
-                      <div className="flex w-full justify-between items-end mt-auto">
-                         <span className="text-[9px] text-neutral-400 bg-black/40 px-1 py-0.5 rounded">{draft.updatedAt}</span>
-                         <button 
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             handleDeleteDraft(draft.id, e);
-                           }}
-                           className="w-5 h-5 rounded-full bg-black/50 text-neutral-400 hover:text-red-500 flex items-center justify-center transition-colors shadow-sm"
-                         >
-                           <Trash2 size={10} />
-                         </button>
-                      </div>
                     </div>
                   </div>
                 ))}

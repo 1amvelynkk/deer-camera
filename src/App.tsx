@@ -52,7 +52,7 @@ export default function App() {
   // Navigation states
   const [currentTab, setCurrentTab] = useState<AppTab>("template"); // starts on creation tab matching Image 8!
   const [myTabTarget, setMyTabTarget] = useState<
-    "rendering" | "exports" | "drafts" | "favorites"
+    "rendering" | "exports" | "favorites"
   >("rendering");
   const [templateSearchTerm, setTemplateSearchTerm] = useState("");
 
@@ -682,12 +682,6 @@ export default function App() {
                   setShowLoginModal={setShowLoginModal}
                   exports={exports}
                   setExports={setExports}
-                  onRestoreDraft={(title) => {
-                    setChatDraftMode(true);
-                    setChatPrompt(title);
-                    setAttachedTemplate(null);
-                    setCurrentTab("template");
-                  }}
                 />
               )}
             </>
@@ -864,7 +858,9 @@ export default function App() {
                   "xiaolu_my_keyframes",
                   JSON.stringify(updated),
                 );
-                showToast("✅ 已保存到我的关键帧");
+                if (!title?.startsWith("关键帧截图")) {
+                  showToast("✅ 已保存到我的关键帧");
+                }
                 if (!activePreviewTemplate.id.startsWith("generated_")) {
                   setKeyframesInternalTab("mine");
                   setCurrentTab("keyframes");
