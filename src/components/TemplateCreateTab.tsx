@@ -467,7 +467,7 @@ export default function TemplateCreateTab({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 bg-[#1c1c1e] flex flex-col">
+            <div className="flex-1 overflow-hidden p-5 bg-[#1c1c1e] flex flex-col">
               <div className="flex gap-1.5 overflow-x-auto pb-3 mb-2 scrollbar-none text-[11px] font-bold shrink-0">
                 {(["封面", "联系名片", "企业荣誉", "营销口号", "水印元素"] as const).map((catName) => {
                   let activeStyles = "border-blue-500 text-blue-200 font-bold bg-blue-900/50 shadow-sm";
@@ -497,7 +497,7 @@ export default function TemplateCreateTab({
                     );
                   }
                   return (
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col h-full overflow-hidden">
                       <div className="flex-1 overflow-y-auto pb-4">
                         <div className="grid grid-cols-2 gap-3 pb-10">
                           {myLogos.map((logoObj, index) => {
@@ -552,7 +552,7 @@ export default function TemplateCreateTab({
                     );
                   }
                   return (
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col h-full overflow-hidden">
                       <div className="flex-1 overflow-y-auto pb-4">
                         <div className="grid grid-cols-2 gap-3 pb-10">
                           {mySlogans.map((sloganObj, index) => {
@@ -612,7 +612,7 @@ export default function TemplateCreateTab({
                   );
                 }
                 return (
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full overflow-hidden">
                   <div className="flex-1 overflow-y-auto pb-4">
                     <div className="grid grid-cols-3 gap-3 pb-10">
                       {filteredFrames.map((kf) => (

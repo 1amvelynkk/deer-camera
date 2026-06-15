@@ -72,7 +72,7 @@ export default function SelectKeyframeModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 bg-[#1c1c1e] flex flex-col">
+        <div className="flex-1 overflow-hidden p-5 bg-[#1c1c1e] flex flex-col">
           {step === 1 ? (
             <>
               <div className="flex gap-1.5 overflow-x-auto pb-3 mb-2 scrollbar-none text-[11px] font-bold shrink-0">
@@ -105,7 +105,7 @@ export default function SelectKeyframeModal({
                     );
                   }
                   return (
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col h-full overflow-hidden">
                       <div className="flex-1 overflow-y-auto pb-4">
                         <div className="grid grid-cols-2 gap-3 pb-10">
                           {myLogos.map((logoObj, index) => {
@@ -159,7 +159,7 @@ export default function SelectKeyframeModal({
                     );
                   }
                   return (
-                    <div className="flex flex-col h-full">
+                    <div className="flex flex-col h-full overflow-hidden">
                       <div className="flex-1 overflow-y-auto pb-4">
                         <div className="grid grid-cols-2 gap-3 pb-10">
                           {mySlogans.map((sloganObj, index) => {
@@ -223,7 +223,7 @@ export default function SelectKeyframeModal({
                   );
                 }
                 return (
-                  <div className="flex flex-col h-full">
+                  <div className="flex flex-col h-full overflow-hidden">
                     <div className="flex-1 overflow-y-auto pb-4">
                       <div className="grid grid-cols-3 gap-3 pb-10">
                         {filteredFrames.map((kf) => (
