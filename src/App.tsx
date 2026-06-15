@@ -972,7 +972,7 @@ export default function App() {
         </div>
 
         {/* 3. Bottom WeChat mini-program Tabbar Navigation panel */}
-        {(chatPrompt || !activePreviewTemplate) &&
+        {(!chatPrompt && !activePreviewTemplate) &&
           !isCreateKeyboardOpen &&
           !isKeyframesFullScreen && (
             <div className="bg-black/95 backdrop-blur-md p-2 pb-5 flex justify-around items-center text-center select-none relative z-10 shrink-0 rounded-b-[40px] h-[84px]">
