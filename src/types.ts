@@ -33,6 +33,7 @@ export interface ExportItem {
   resolution: string;
   fileSize: string;
   date: string;
+  image?: string;
 }
 
 export interface AppState {

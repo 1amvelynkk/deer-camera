@@ -25,6 +25,8 @@ import {
   Phone,
   Award,
   Search,
+  Forward,
+  LogOut,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoTemplate } from "../types";
@@ -122,6 +124,10 @@ export default function VideoPreview({
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0); // Play from the start
   const [showMetadata, setShowMetadata] = useState(true); // Toggle between Image 2 & Image 3 states!
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+
 
   // Editing state for my keyframes
   const [editedTitle, setEditedTitle] = useState(
@@ -200,6 +206,7 @@ export default function VideoPreview({
 
   const updateTextStyle = (updates: Partial<{ fontFamily: string; color: string; stroke: string; scale: number }>) => {
     if (editingSubtitleId === null) return;
+    setHasUnsavedChanges(true);
     setTextStyles(prev => ({
       ...prev,
       [editingSubtitleId]: {
@@ -237,6 +244,7 @@ export default function VideoPreview({
           return [prev[0], Math.max(percentage, prev[0] + 5)];
         }
       });
+      setHasUnsavedChanges(true);
     };
     
     const handleBgmPointerUp = () => {
@@ -476,32 +484,34 @@ export default function VideoPreview({
                 {keyframeScreenshot && (
                   <img src={keyframeScreenshot} className="w-[240px] aspect-[3/4] rounded-2xl object-cover shadow-md mt-2" />
                 )}
-                {isKeyframeSavedInOverlay ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm font-bold tracking-wide">已保存到我的关键帧 - {savedKeyframeCategory}</span>
-                  </div>
-                ) : (
-                  <button 
-                    className="px-6 py-2.5 bg-blue-600 active:scale-95 transition-transform rounded-full text-white font-bold text-[14px] w-full"
-                    onClick={() => {
-                      if (onSaveKeyframe && pendingKeyframeSaveParams) {
-                         onSaveKeyframe(...pendingKeyframeSaveParams);
-                      }
-                      if (pendingKeyframeClickData) {
-                         setClickedFrames(prev => [...prev, pendingKeyframeClickData]);
-                         setPendingKeyframeClickData(null);
-                      }
-                      setIsKeyframeSavedInOverlay(true);
-                      setTimeout(() => {
-                         setShowSaveKeyframeOverlay(false);
-                         setIsPlaying(true);
-                         setIsKeyframeSavedInOverlay(false);
-                      }, 2000);
-                    }}
-                  >
-                    保存
-                  </button>
-                )}
+                <div className="flex items-center justify-center h-[40px] w-full">
+                  {isKeyframeSavedInOverlay ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-sm font-bold tracking-wide">已保存到我的关键帧 - {savedKeyframeCategory}</span>
+                    </div>
+                  ) : (
+                    <button 
+                      className="h-full bg-blue-600 active:scale-95 transition-transform rounded-full text-white font-bold text-[14px] w-full flex items-center justify-center"
+                      onClick={() => {
+                        if (onSaveKeyframe && pendingKeyframeSaveParams) {
+                           onSaveKeyframe(...pendingKeyframeSaveParams);
+                        }
+                        if (pendingKeyframeClickData) {
+                           setClickedFrames(prev => [...prev, pendingKeyframeClickData]);
+                           setPendingKeyframeClickData(null);
+                        }
+                        setIsKeyframeSavedInOverlay(true);
+                        setTimeout(() => {
+                           setShowSaveKeyframeOverlay(false);
+                           setIsPlaying(true);
+                           setIsKeyframeSavedInOverlay(false);
+                        }, 2000);
+                      }}
+                    >
+                      保存
+                    </button>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
@@ -527,7 +537,7 @@ export default function VideoPreview({
             {/* Center 9:16 Video Box Static Wrapper for Absolute Positioning */}
             <div className="relative h-full aspect-[9/16] shrink-0 max-w-full">
               {/* Floating Side Buttons (Moved outside scaling wrapper) */}
-              <div className="absolute -right-[46px] top-[15%] w-[48px] flex flex-col items-center gap-4 z-20">
+              <div className="absolute -right-[46px] top-[2%] w-[48px] flex flex-col items-center gap-4 z-20">
                 <div className="flex flex-col items-center gap-1 cursor-pointer group/btn active:scale-95 transition-transform" onClick={() => setShowVoiceSheet(true)}>
                   <button className="flex items-center justify-center bg-white/20 backdrop-blur-md shadow-md rounded-full w-9 h-9 border border-white/30 overflow-hidden relative">
                     {showVoice && appliedVoice ? (
@@ -1025,6 +1035,7 @@ export default function VideoPreview({
                             // Adjust segment identifiers or progress if needed
                             return next;
                           });
+                          setHasUnsavedChanges(true);
                           
                           if (idx >= segments.length - 1) {
                             // Deleted last segment, move progress back
@@ -1049,13 +1060,14 @@ export default function VideoPreview({
 
 
               {/* Audio Track */}
-              {showBackgroundMusic && (
-                <div 
-                  ref={bgmContainerRef}
-                  className="mt-2 w-full relative z-10 group/bgm h-7 bg-white/5 rounded-[6px]"
-                >
+              <div 
+                ref={bgmContainerRef}
+                className="mt-2 w-full relative z-10 h-7 bg-white/5 rounded-[6px]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {showBackgroundMusic && (
                   <div 
-                    className="absolute top-0 bottom-0 flex items-center justify-between bg-blue-500/90 backdrop-blur-sm border border-blue-400/50 rounded-[6px] text-white text-[11px] font-bold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
+                    className="absolute top-0 bottom-0 flex items-center justify-between group/bgm bg-blue-500/90 backdrop-blur-sm border border-blue-400/50 rounded-[6px] text-white text-[11px] font-bold shadow-[0_2px_8px_rgba(59,130,246,0.3)] transition-all"
                     style={{ left: `${bgmTrackRange[0]}%`, width: `${bgmTrackRange[1] - bgmTrackRange[0]}%` }}
                   >
                     <div 
@@ -1063,10 +1075,13 @@ export default function VideoPreview({
                       onPointerDown={(e) => handleBgmPointerDown(e, "start")}
                     />
                     
-                    <span className="truncate px-3 pointer-events-none select-none">🎵 背景音乐</span>
+                    <span className="truncate px-3 pointer-events-none select-none flex items-center gap-1.5"><Music size={12} className="shrink-0" /> 背景音乐</span>
                     
                     <button
-                      onClick={() => setShowBackgroundMusic(false)}
+                      onClick={() => {
+                        setShowBackgroundMusic(false);
+                        setHasUnsavedChanges(true);
+                      }}
                       className="opacity-0 group-hover/bgm:opacity-100 transition-opacity hover:bg-black/20 p-0.5 rounded-sm text-white ml-2 mr-5 z-10"
                       title="删除背景音乐"
                     >
@@ -1078,24 +1093,52 @@ export default function VideoPreview({
                       onPointerDown={(e) => handleBgmPointerDown(e, "end")}
                     />
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex gap-2 mt-1 w-full shrink-0">
-              <button
-                onClick={onShare}
-                className="flex-1 bg-white/10 text-white py-3 rounded-[12px] text-[13px] font-bold active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5"
-              >
-                <Share2 size={14} className="stroke-[2.5]" /> 分享视频
-              </button>
-              <button
-                onClick={onDownload}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-[12px] text-[13px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all shadow-md active:bg-blue-700"
-              >
-                <Download size={14} className="stroke-[2.5]" /> 下载视频
-              </button>
+              {hasUnsavedChanges ? (
+                <button
+                  onClick={() => {
+                    setIsGenerating(true);
+                    setGenerationProgress(0);
+                    const interval = setInterval(() => {
+                      setGenerationProgress(prev => {
+                        if (prev >= 100) {
+                          clearInterval(interval);
+                          setIsGenerating(false);
+                          setHasUnsavedChanges(false);
+                          showToast("保存修改成功");
+                          return 100;
+                        }
+                        return prev + 2;
+                      });
+                    }, 100);
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-[16px] text-[15px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all shadow-md"
+                >
+                   保存修改
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={onDownload}
+                    className="flex-1 bg-blue-600 text-white py-3 rounded-[16px] text-[15px] font-bold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all shadow-md active:bg-blue-700"
+                  >
+                    <Download size={18} className="stroke-[2.5]" /> 下载视频
+                  </button>
+                  <button
+                    onClick={onShare}
+                    className="bg-[#2c2c2e] text-white w-[50px] rounded-[16px] flex items-center justify-center shrink-0 active:scale-95 transition-all shadow-sm active:bg-[#3a3a3c]"
+                  >
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                      <path d="M14 5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11v-4z" />
+                    </svg>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1123,6 +1166,7 @@ export default function VideoPreview({
                           )?.text || ""
                     }
                     onChange={(e) => {
+                      setHasUnsavedChanges(true);
                       if (editingSubtitleId === "main") {
                         const newSegments = [...segments];
                         newSegments[safeActiveSegmentIndex].text = e.target.value;
@@ -1141,7 +1185,10 @@ export default function VideoPreview({
                   />
                 </div>
                 <button
-                  onClick={() => setEditingSubtitleId(null)}
+                  onClick={() => {
+                    setEditingSubtitleId(null);
+                    setHasUnsavedChanges(true);
+                  }}
                   className="w-[42px] h-[42px] bg-[#e5e5e7] rounded-[10px] flex items-center justify-center shrink-0 active:scale-95 transition-transform"
                 >
                   <svg
@@ -1163,7 +1210,10 @@ export default function VideoPreview({
               <div className="flex items-center px-4 pb-2 text-[14px] font-bold text-gray-400 gap-6 border-b border-[#2c2c2e]/50 mt-1">
                 <div 
                   className={`flex items-center gap-1.5 pb-1.5 cursor-pointer relative top-[2px] ${editingTab === "keyboard" ? "text-white border-b-[2.5px] border-white" : ""}`}
-                  onClick={() => setEditingTab("keyboard")}
+                  onClick={() => {
+                    setEditingTab("keyboard");
+                    setHasUnsavedChanges(true);
+                  }}
                 >
                   <svg
                     width="15"
@@ -1197,7 +1247,10 @@ export default function VideoPreview({
                 </div>
                 <div 
                   className={`flex items-center gap-1.5 pb-1.5 cursor-pointer relative top-[2px] ${editingTab === "font" ? "text-white border-b-[2.5px] border-white" : ""}`}
-                  onClick={() => setEditingTab("font")}
+                  onClick={() => {
+                    setEditingTab("font");
+                    setHasUnsavedChanges(true);
+                  }}
                 >
                   <span className="font-serif font-black text-[15px] tracking-tighter">
                     Aa
@@ -1206,7 +1259,10 @@ export default function VideoPreview({
                 </div>
                 <div 
                   className={`flex items-center gap-1.5 pb-1.5 cursor-pointer relative top-[2px] ${editingTab === "style" ? "text-white border-b-[2.5px] border-white" : ""}`}
-                  onClick={() => setEditingTab("style")}
+                  onClick={() => {
+                    setEditingTab("style");
+                    setHasUnsavedChanges(true);
+                  }}
                 >
                   <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-blue-500 via-pink-500 to-yellow-500 border border-[#3c3c3e]" />
                   样式
@@ -1471,7 +1527,7 @@ export default function VideoPreview({
                             <span className={`text-[14px] font-bold truncate ${isSelected ? "text-[#FA2A55]" : "text-white"}`}>
                               {track.title}
                             </span>
-                            {appliedTrack === track.title && !isSelected && (
+                            {showBackgroundMusic && appliedTrack === track.title && !isSelected && (
                               <span className="text-[#FA2A55] text-[10px] bg-[#FA2A55]/10 px-1.5 py-0.5 rounded font-bold whitespace-nowrap shrink-0">使用中</span>
                             )}
                             {isSelected && (
@@ -1499,7 +1555,7 @@ export default function VideoPreview({
                               }}>
                               <Star size={20} className={`stroke-[2.5] ${favoriteTracks.includes(track.title) ? "fill-[#FA2A55] stroke-[#FA2A55]" : ""}`} />
                             </button>
-                            {appliedTrack === track.title ? (
+                            {showBackgroundMusic && appliedTrack === track.title ? (
                               <span className="text-[#FA2A55] text-[13px] font-bold px-2">正在使用</span>
                             ) : (
                               <button 
@@ -1509,6 +1565,7 @@ export default function VideoPreview({
                                   setAppliedTrack(track.title);
                                   setShowMusicSheet(false); 
                                   setShowBackgroundMusic(true);
+                                  setHasUnsavedChanges(true);
                                   showToast("已应用背景音乐"); 
                                 }}
                               >
@@ -1596,7 +1653,7 @@ export default function VideoPreview({
                             <span className={`text-[14px] font-bold truncate ${isSelected ? "text-[#FA2A55]" : "text-white"}`}>
                               {track.title}
                             </span>
-                            {appliedVoice === track.title && !isSelected && (
+                            {showVoice && appliedVoice === track.title && !isSelected && (
                               <span className="text-[#FA2A55] text-[10px] bg-[#FA2A55]/10 px-1.5 py-0.5 rounded font-bold whitespace-nowrap shrink-0">使用中</span>
                             )}
                             {isSelected && (
@@ -1624,7 +1681,7 @@ export default function VideoPreview({
                               }}>
                               <Star size={20} className={`stroke-[2.5] ${favoriteVoices.includes(track.title) ? "fill-[#FA2A55] stroke-[#FA2A55]" : ""}`} />
                             </button>
-                            {appliedVoice === track.title ? (
+                            {showVoice && appliedVoice === track.title ? (
                               <span className="text-[#FA2A55] text-[13px] font-bold px-2">正在使用</span>
                             ) : (
                               <button 
@@ -1634,6 +1691,7 @@ export default function VideoPreview({
                                   setAppliedVoice(track.title);
                                   setShowVoiceSheet(false); 
                                   setShowVoice(true);
+                                  setHasUnsavedChanges(true);
                                   showToast("已应用音效"); 
                                 }}
                               >
@@ -1648,6 +1706,59 @@ export default function VideoPreview({
                 </div>
               </motion.div>
             </>
+          )}
+        </AnimatePresence>
+
+        {/* Generation Loading Overlay */}
+        <AnimatePresence>
+          {isGenerating && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
+            >
+              <div className="bg-[#1c1c1e] rounded-[24px] p-6 flex flex-col items-center w-[240px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/5 relative">
+                <button
+                  onClick={() => setIsGenerating(false)}
+                  className="absolute top-3 right-3 text-white/40 hover:text-white transition-colors p-1"
+                  title="退出"
+                >
+                  <LogOut size={16} />
+                </button>
+
+                <div className="relative w-[60px] h-[60px] mb-4 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                  <svg className="w-full h-full -rotate-90 filter drop-shadow-lg" viewBox="0 0 100 100">
+                    <circle
+                      className="text-white/5 stroke-current"
+                      strokeWidth="6"
+                      cx="50"
+                      cy="50"
+                      r="44"
+                      fill="transparent"
+                    ></circle>
+                    <circle
+                      className="text-blue-500 stroke-current transition-all duration-200 ease-out"
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      cx="50"
+                      cy="50"
+                      r="44"
+                      fill="transparent"
+                      strokeDasharray="276"
+                      strokeDashoffset={276 - (276 * generationProgress) / 100}
+                    ></circle>
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[14px] font-black text-white tracking-tighter">{Math.min(100, Math.round(generationProgress))}%</span>
+                  </div>
+                </div>
+                <h3 className="text-white font-bold text-[14px] mb-1.5 tracking-wide">正在重新组合视频</h3>
+                <p className="text-white/50 text-[10px] text-center px-1 leading-relaxed">
+                  退出弹窗将会转入后台生成，可前往「我的页面-进行中」查看进度。
+                </p>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -1695,32 +1806,34 @@ export default function VideoPreview({
               {keyframeScreenshot && (
                 <img src={keyframeScreenshot} className="w-[240px] aspect-[3/4] rounded-2xl object-cover shadow-md mt-2" />
               )}
-              {isKeyframeSavedInOverlay ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-bold tracking-wide">已保存到我的关键帧 - {savedKeyframeCategory}</span>
+                <div className="flex items-center justify-center h-[40px] w-full">
+                  {isKeyframeSavedInOverlay ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-sm font-bold tracking-wide">已保存到我的关键帧 - {savedKeyframeCategory}</span>
+                    </div>
+                  ) : (
+                    <button 
+                      className="h-full bg-blue-600 active:scale-95 transition-transform rounded-full text-white font-bold text-[14px] w-full flex items-center justify-center"
+                      onClick={() => {
+                        if (onSaveKeyframe && pendingKeyframeSaveParams) {
+                           onSaveKeyframe(...pendingKeyframeSaveParams);
+                        }
+                        if (pendingKeyframeClickData) {
+                           setClickedFrames(prev => [...prev, pendingKeyframeClickData]);
+                           setPendingKeyframeClickData(null);
+                        }
+                        setIsKeyframeSavedInOverlay(true);
+                        setTimeout(() => {
+                           setShowSaveKeyframeOverlay(false);
+                           setIsPlaying(true);
+                           setIsKeyframeSavedInOverlay(false);
+                        }, 2000);
+                      }}
+                    >
+                      保存
+                    </button>
+                  )}
                 </div>
-              ) : (
-                <button 
-                  className="px-6 py-2.5 bg-blue-600 active:scale-95 transition-transform rounded-full text-white font-bold text-[14px] w-full"
-                  onClick={() => {
-                    if (onSaveKeyframe && pendingKeyframeSaveParams) {
-                       onSaveKeyframe(...pendingKeyframeSaveParams);
-                    }
-                    if (pendingKeyframeClickData) {
-                       setClickedFrames(prev => [...prev, pendingKeyframeClickData]);
-                       setPendingKeyframeClickData(null);
-                    }
-                    setIsKeyframeSavedInOverlay(true);
-                    setTimeout(() => {
-                       setShowSaveKeyframeOverlay(false);
-                       setIsPlaying(true);
-                       setIsKeyframeSavedInOverlay(false);
-                    }, 2000);
-                  }}
-                >
-                  保存
-                </button>
-              )}
             </div>
           </motion.div>
         )}
@@ -1962,6 +2075,59 @@ export default function VideoPreview({
             )}
         </div>
       </div>
+      
+      {/* Generation Loading Overlay */}
+      <AnimatePresence>
+        {isGenerating && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <div className="bg-[#1c1c1e] rounded-[24px] p-6 flex flex-col items-center w-[240px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/5 relative">
+              <button
+                onClick={() => setIsGenerating(false)}
+                className="absolute top-3 right-3 text-white/40 hover:text-white transition-colors p-1"
+                title="退出"
+              >
+                <LogOut size={16} />
+              </button>
+
+              <div className="relative w-[60px] h-[60px] mb-4 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                <svg className="w-full h-full -rotate-90 filter drop-shadow-lg" viewBox="0 0 100 100">
+                  <circle
+                    className="text-white/5 stroke-current"
+                    strokeWidth="6"
+                    cx="50"
+                    cy="50"
+                    r="44"
+                    fill="transparent"
+                  ></circle>
+                  <circle
+                    className="text-blue-500 stroke-current transition-all duration-200 ease-out"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    cx="50"
+                    cy="50"
+                    r="44"
+                    fill="transparent"
+                    strokeDasharray="276"
+                    strokeDashoffset={276 - (276 * generationProgress) / 100}
+                  ></circle>
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-[14px] font-black text-white tracking-tighter">{Math.min(100, Math.round(generationProgress))}%</span>
+                </div>
+              </div>
+              <h3 className="text-white font-bold text-[14px] mb-1.5 tracking-wide">正在重新组合视频</h3>
+              <p className="text-white/50 text-[10px] text-center px-1 leading-relaxed">
+                退出弹窗将会转入后台生成，可前往「我的页面-进行中」查看进度。
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

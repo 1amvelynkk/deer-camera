@@ -133,6 +133,7 @@ export default function App() {
       resolution: "4K (2160p)",
       fileSize: "42.8 MB",
       date: "今天 11:30",
+      image: "/moban.png"
     },
     {
       id: "exp-2",
@@ -140,6 +141,7 @@ export default function App() {
       resolution: "1080p (60fps)",
       fileSize: "24.5 MB",
       date: "05-25",
+      image: "/moban2.png"
     },
     {
       id: "exp-3",
@@ -147,6 +149,7 @@ export default function App() {
       resolution: "1080p",
       fileSize: "19.1 MB",
       date: "05-21",
+      image: "/moban.png"
     },
   ]);
 
@@ -661,6 +664,12 @@ export default function App() {
                     );
                     showToast("✅ 已保存对关键帧的修改");
                   }}
+                  onAddKeyframe={(newKf) => {
+                    const updated = [newKf, ...myKeyframes];
+                    setMyKeyframes(updated);
+                    localStorage.setItem("xiaolu_my_keyframes", JSON.stringify(updated));
+                    showToast("✅ 已保存到我的关键帧");
+                  }}
                   isLoggedIn={isLoggedIn}
                   setShowLoginModal={setShowLoginModal}
                 />
@@ -682,6 +691,7 @@ export default function App() {
                   setShowLoginModal={setShowLoginModal}
                   exports={exports}
                   setExports={setExports}
+                  triggerToast={showToast}
                 />
               )}
             </>

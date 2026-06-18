@@ -40,6 +40,7 @@ interface MyTabProps {
   initialTab?: "rendering" | "exports" | "favorites";
   exports: ExportItem[];
   setExports: React.Dispatch<React.SetStateAction<ExportItem[]>>;
+  triggerToast: (msg: string) => void;
 }
 
 interface RenderItem {
@@ -47,9 +48,10 @@ interface RenderItem {
   title: string;
   progress: number;
   status: "rendering" | "queued" | "paused";
+  image?: string;
 }
 
-export default function MyTab({ creationsCount, onSelectTemplate, favorites, onToggleFavorite, isLoggedIn, setIsLoggedIn, showLoginModal, setShowLoginModal, initialTab, exports, setExports }: MyTabProps) {
+export default function MyTab({ creationsCount, onSelectTemplate, favorites, onToggleFavorite, isLoggedIn, setIsLoggedIn, showLoginModal, setShowLoginModal, initialTab, exports, setExports, triggerToast }: MyTabProps) {
   // 1. Account Settings States
   const [userName, setUserName] = useState<string>(() => {
     return localStorage.getItem("xiaolu_user_nickname") || "华康数智媒介专家";
@@ -76,6 +78,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
   const [showRechargeModal, setShowRechargeModal] = useState<boolean>(false);
   const [showContactModal, setShowContactModal] = useState<boolean>(false);
   const [showInvoicingModal, setShowInvoicingModal] = useState<boolean>(false);
+  const [activeInvoicingTab, setActiveInvoicingTab] = useState<"unapplied" | "applied">("unapplied");
   const [showAllExportsModal, setShowAllExportsModal] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"rendering" | "exports" | "favorites">(initialTab || "rendering");
 
@@ -87,21 +90,16 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
 
   // 3. Render Status Queue (Generating)
   const [renders, setRenders] = useState<RenderItem[]>([
-    { id: "render-1", title: "中药提取流水线智能特写视频", progress: 68, status: "rendering" },
-    { id: "render-2", title: "高净空气流体力学制药车间实景", progress: 0, status: "queued" },
-    { id: "render-3", title: "华康医药产品宣发视频1", progress: 0, status: "queued" },
+    { id: "render-1", title: "中药提取流水线智能特写视频", progress: 68, status: "rendering", image: "/moban.png" },
+    { id: "render-2", title: "高净空气流体力学制药车间实景", progress: 0, status: "queued", image: "/moban2.png" },
+    { id: "render-3", title: "华康医药产品宣发视频1", progress: 0, status: "queued", image: "/moban.png" },
     { id: "render-4", title: "华康医药工厂实力展示", progress: 0, status: "queued" }
   ]);
 
   // 5. Export History Records 
   // (Lifted to App.tsx)
 
-  // Interactive Toast Bubble inside MyTab
-  const [subToast, setSubToast] = useState<string | null>(null);
-  const triggerToast = (msg: string) => {
-    setSubToast(msg);
-    setTimeout(() => setSubToast(null), 2500);
-  };
+  // Interactive Toast Bubble handled by App.tsx globally via triggerToast prop
 
   useEffect(() => {
     const handleAddRenderingItem = (e: any) => {
@@ -110,7 +108,8 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
           id: "render-" + Date.now(),
           title: e.detail.title,
           progress: 5,
-          status: "rendering"
+          status: "rendering",
+          image: ["/moban.png", "/moban2.png"][Math.floor(Math.random() * 2)]
         },
         ...prev
       ]);
@@ -153,7 +152,8 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                 title: item.title,
                 resolution: "1080p (HD)",
                 fileSize: `${(Math.random() * 20 + 15).toFixed(1)} MB`,
-                date: "刚刚"
+                date: "刚刚",
+                image: item.image || "/moban.png"
               };
               setExports(e => {
                 // Prevent duplicate insertions caused by StrictMode
@@ -407,8 +407,9 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
               <div className="grid grid-cols-3 gap-[1px] mt-0.5">
                 {displayRenders.map(item => (
                   <div key={item.id} className="relative aspect-[3/4] bg-neutral-900 border border-blue-500/10 overflow-hidden group">
-                     <div className="absolute inset-0 p-2 flex flex-col justify-between">
-                       <span className="text-[11px] font-extrabold text-white text-left line-clamp-3 leading-snug">{item.title}</span>
+                     {item.image && <img src={item.image} className="absolute inset-0 w-full h-full object-cover opacity-40 z-0" alt="" />}
+                     <div className="absolute inset-0 p-2 flex flex-col justify-between z-10 bg-gradient-to-t from-black/80 via-transparent to-black/40">
+                       <span className="text-[11px] font-extrabold text-white text-left line-clamp-3 leading-snug drop-shadow-md">{item.title}</span>
                        <div className="w-full flex-1 flex flex-col items-center justify-center">
                          <div className="w-10 h-10 flex items-center justify-center relative mb-1">
                             <svg viewBox="0 0 40 40" className="w-full h-full absolute top-0 left-0 -rotate-90">
@@ -461,7 +462,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                     onClick={() => {
                       onSelectTemplate({
                          id: "generated_from_history_" + item.id,
-                         image: "/mock.png", 
+                         image: item.image || "/mock.png", 
                          title: item.title, 
                          stats: "您的AI作品",
                          tags: ["#AI生成", "#超清档案"], 
@@ -471,14 +472,16 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                       }); 
                     }}
                   >
-                    <div className="absolute inset-0 bg-neutral-900 border border-emerald-500/10 hover:border-emerald-500/30 transition-all"></div>
-                    <div className="absolute inset-0 p-2 flex flex-col justify-between">
+                    <div className="absolute inset-0 bg-neutral-900 border border-emerald-500/10 hover:border-emerald-500/30 transition-all">
+                      {item.image && <img src={item.image} className="w-full h-full object-cover opacity-50 block" alt="" />}
+                    </div>
+                    <div className="absolute inset-0 p-2 flex flex-col justify-between z-10 bg-gradient-to-t from-black/80 via-transparent to-black/40">
                        <div>
-                         <span className="text-[11px] font-bold text-emerald-400 line-clamp-3 leading-snug">{item.title}</span>
-                         <span className="text-[9px] text-neutral-400 font-mono scale-90 origin-left inline-block">{item.fileSize}</span>
+                         <span className="text-[11px] font-bold text-white drop-shadow-md line-clamp-3 leading-snug">{item.title}</span>
+                         <span className="text-[9px] text-neutral-300 font-mono scale-90 origin-left inline-block drop-shadow-md">{item.fileSize}</span>
                        </div>
                        <div className="flex w-full justify-between items-end mt-auto">
-                          <span className="text-[9px] text-neutral-400 bg-black/40 px-1 py-0.5 rounded">{item.date}</span>
+                          <span className="text-[9px] text-neutral-200 drop-shadow-md bg-black/60 px-1 py-0.5 rounded">{item.date}</span>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -652,33 +655,99 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
               <X size={12} />
             </button>
 
-            <div className="text-center space-y-1 mb-4">
+            <div className="text-center space-y-1 mb-4 flex flex-col items-center">
               <span className="text-xs bg-purple-500/20 text-purple-300 font-extrabold px-2.5 py-0.5 rounded-full inline-block">发票开具与对账明细</span>
-              <h4 className="text-[13px] font-black text-white mt-1">发票申请、订单管理</h4>
-            </div>
-
-            <div className="space-y-2 text-[10px] text-neutral-400 pb-2">
-              <p className="font-extrabold text-neutral-300">1. 本月可开票总额：</p>
-              <div className="bg-neutral-800/50 p-2.5 rounded-xl border border-neutral-700 font-mono text-xs font-black text-white flex justify-between">
-                <span>累计￥499.00</span>
-                <span className="text-emerald-500 font-bold text-[9.5px]">未开具</span>
-              </div>
               
-              <div className="bg-purple-500/10 p-2.5 rounded-xl border border-purple-500/20 text-purple-200 text-[8.5px] leading-relaxed">
-                华康医药集团股份有限公司的纳税编码、开票名称已经在 **“企业关键帧”** 模块中维护。系统在您点击时自动匹配企业信息，无需重复填报，极速电子发票已接入税务局直连。
+              <div className="flex bg-neutral-800/50 p-1 rounded-full w-4/5 mt-3">
+                <button
+                  onClick={() => setActiveInvoicingTab("unapplied")}
+                  className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                    activeInvoicingTab === "unapplied" ? "bg-white text-black shadow-sm" : "text-neutral-400"
+                  }`}
+                >
+                  未申请
+                </button>
+                <button
+                  onClick={() => setActiveInvoicingTab("applied")}
+                  className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                    activeInvoicingTab === "applied" ? "bg-white text-black shadow-sm" : "text-neutral-400"
+                  }`}
+                >
+                  已申请
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setShowInvoicingModal(false);
-                  triggerToast("⚡ 电子普通发票已秒级申请成功！正发送至 138-xxxx-3998绑定的微信卡包中");
-                }}
-                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-bold active:scale-[0.98] transition-all text-center mt-2.5 shadow-sm"
-              >
-                一键开具电子发票
-              </button>
             </div>
+
+            {activeInvoicingTab === "unapplied" ? (
+              <div className="flex flex-col h-[210px]">
+                <div className="space-y-3 text-[10px] text-neutral-400 pb-2 flex-1 overflow-y-auto pr-1">
+                  <div className="bg-neutral-800/50 p-3 rounded-xl border border-neutral-700 flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-white font-bold">￥399.00</span>
+                      <span className="text-neutral-400 text-[9px]">2023-10-25</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-neutral-400 text-[9px]">服务费电子普通发票</span>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowInvoicingModal(false); triggerToast("⚡ 发票已申请成功"); }} className="text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-full text-[9px] font-bold hover:bg-blue-500/10 active:scale-95 transition-all">开发票</button>
+                    </div>
+                  </div>
+                  <div className="bg-neutral-800/50 p-3 rounded-xl border border-neutral-700 flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-white font-bold">￥100.00</span>
+                      <span className="text-neutral-400 text-[9px]">2023-10-22</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-neutral-400 text-[9px]">服务费电子普通发票</span>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowInvoicingModal(false); triggerToast("⚡ 发票已申请成功"); }} className="text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-full text-[9px] font-bold hover:bg-blue-500/10 active:scale-95 transition-all">开发票</button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-2 mt-1 shrink-0 relative">
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInvoicingModal(false);
+                      triggerToast("⚡ 电子普通发票已秒级申请成功！正发送至绑定的微信卡包中");
+                    }}
+                    className="w-full mt-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-[11px] font-bold active:scale-[0.98] transition-all text-center shadow-sm flex items-center justify-center gap-1.5"
+                  >
+                    <span>全部一键开具</span>
+                    <span className="bg-white/20 px-1.5 py-0.5 rounded text-[9px]">￥499.00</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 text-[10px] pb-2 h-[210px] overflow-y-auto pr-1">
+                <div className="bg-neutral-800/50 p-3 rounded-xl border border-neutral-700 flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-white font-bold">￥128.00</span>
+                    <span className="text-neutral-400 text-[9px]">2023-10-15</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-neutral-400 text-[9px]">服务费电子普通发票</span>
+                    <div className="flex gap-2 items-center">
+                      <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 font-bold rounded text-[9px]">已申请</span>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); triggerToast("⚡ 发票已下载到本地文件"); }} className="text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-full text-[9px] font-bold hover:bg-blue-500/10 active:scale-95 transition-all">下载电子版</button>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-neutral-800/50 p-3 rounded-xl border border-neutral-700 flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-white font-bold">￥39.99</span>
+                    <span className="text-neutral-400 text-[9px]">2023-09-02</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-neutral-400 text-[9px]">服务费电子普通发票</span>
+                    <div className="flex gap-2 items-center">
+                      <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 font-bold rounded text-[9px]">已申请</span>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); triggerToast("⚡ 发票已下载到本地文件"); }} className="text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-full text-[9px] font-bold hover:bg-blue-500/10 active:scale-95 transition-all">下载电子版</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -737,14 +806,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
 
 
 
-      {/* Internal interactive sub-toast alerts */}
-      {subToast && (
-        <div className="fixed top-1/4 left-1/2 -translate-x-1/2 bg-gray-900/95 backdrop-blur-sm text-white text-[9.5px] font-extrabold px-3 py-1.8 rounded-xl z-55 text-center shadow-lg border border-neutral-700 flex items-center gap-1 max-w-[200px]">
-          <span className="truncate">{subToast}</span>
-        </div>
-      )}
-
     </div>
-      </div>
+  </div>
   );
 }

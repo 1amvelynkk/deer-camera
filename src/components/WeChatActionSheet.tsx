@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
-import { X, Link as LinkIcon, MoreHorizontal as MoreHorizontalIcon } from "lucide-react";
+import { X, Link as LinkIcon, MoreHorizontal as MoreHorizontalIcon, Download, AlertTriangle } from "lucide-react";
 import { WechatIcon, ApertureIcon, QQIcon } from "./VideoPreview"; // We exported them in previous step
 
 interface WeChatActionSheetProps {
@@ -50,29 +50,30 @@ export default function WeChatActionSheet({
               </button>
             </div>
 
-            <div className="grid grid-cols-5 gap-2 px-1">
-              {[
-                { label: "微信好友", icon: <WechatIcon className="w-7 h-7" /> },
-                { label: "朋友圈", icon: <ApertureIcon className="w-7 h-7" /> },
-                { label: "QQ", icon: <QQIcon className="w-7 h-7" /> },
-                { label: "复制链接", icon: <LinkIcon size={24} className="stroke-[2.5]" /> },
-                { label: "更多分享", icon: <MoreHorizontalIcon size={24} className="stroke-[2.5]" /> },
-              ].map((item: any) => (
-                <button
-                  key={item.label}
-                  onClick={() => {
-                    onSelectOption(item.label);
-                    onClose();
-                  }}
-                  className="flex flex-col items-center gap-2 group cursor-pointer active:scale-95 transition-all"
-                >
-                  <div className="w-[52px] h-[52px] bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                    {item.icon}
-                  </div>
-                  <span className="text-[10px] text-white/80">{item.label}</span>
-                </button>
-              ))}
-            </div>
+              <div className="grid grid-cols-5 gap-y-6 gap-x-1 px-1 pb-2">
+                {[
+                  { label: "微信好友", icon: <WechatIcon className="w-7 h-7" /> },
+                  { label: "微信朋友圈", icon: <ApertureIcon className="w-7 h-7" /> },
+                  { label: "下载", icon: <Download size={20} className="stroke-[2.5]" /> },
+                  { label: "分享Gif", icon: <span className="font-bold text-[12px] tracking-wide">GIF</span> },
+                  { label: "链接", icon: <LinkIcon size={18} className="stroke-[2.5]" /> },
+                  { label: "更多", icon: <MoreHorizontalIcon size={20} className="stroke-[2.5]" /> },
+                ].map((item: any) => (
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      onSelectOption(item.label);
+                      onClose();
+                    }}
+                    className="flex flex-col items-center gap-2 group cursor-pointer active:scale-95 transition-all"
+                  >
+                    <div className="w-[48px] h-[48px] bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                      {item.icon}
+                    </div>
+                    <span className="text-[10px] text-white/80 whitespace-nowrap">{item.label}</span>
+                  </button>
+                ))}
+              </div>
           </motion.div>
         </div>
       </AnimatePresence>

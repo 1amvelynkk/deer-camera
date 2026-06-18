@@ -34,7 +34,7 @@ interface BrandConfig {
 const DEFAULT_BRAND_CONFIG: BrandConfig = {
   logoUrl: "",
   companyName: "杭州绿境保洁科技有限公司",
-  slogan: "专业团队 服务高效 省时省力",
+  slogan: "",
   address: "杭州市上城区滨江路100号",
   contact: "13175017711",
 };
@@ -135,7 +135,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-emerald-600 text-white border-emerald-450",
     textColor: "text-white",
     badgeText: "经典",
-    coverImage: "/contact-cover.png",
+    coverImage: "/con1.png",
   },
   {
     id: "temp_outro_guard_16_9_1",
@@ -163,7 +163,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
   },
   {
     id: "temp_slogan_1",
-    title: "营销口号横幅",
+    title: "营销通栏横幅",
     category: "营销口号",
     aspectRatio: "16:9",
     desc: "冲击力极强的营销横幅，快速抓住用户眼球",
@@ -171,19 +171,43 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-red-600 text-white border-red-500",
     textColor: "text-white",
     badgeText: "热门",
-    coverImage: "/awa1.png",
+    coverImage: "/slogan1.png",
   },
   {
-    id: "temp_watermark_1",
-    title: "护航水印元素",
+    id: "temp_slogan_2",
+    title: "活动促销海报",
+    category: "营销口号",
+    aspectRatio: "9:16",
+    desc: "竖版活动海报，适合展示主推优惠",
+    bgGradient: "from-orange-900 to-orange-700",
+    pillColor: "bg-orange-600 text-white border-orange-500",
+    textColor: "text-white",
+    badgeText: "新款",
+    coverImage: "/slogan2.png",
+  },
+  {
+    id: "temp_slogan_3",
+    title: "品牌宣言版式",
+    category: "营销口号",
+    aspectRatio: "16:9",
+    desc: "凸显品牌价值主张的横版宣言",
+    bgGradient: "from-purple-900 to-purple-800",
+    pillColor: "bg-purple-600 text-white border-purple-500",
+    textColor: "text-white",
+    badgeText: "精选",
+    coverImage: "/slogan3.png",
+  },
+  {
+    id: "temp_watermark_2",
+    title: "护航光棒元素",
     category: "水印元素",
     aspectRatio: "9:16",
-    desc: "水样边框，保护原创内容的同时点缀画面",
+    desc: "赛博朋克光棒边框，为内容添加炫彩点缀",
     bgGradient: "from-slate-800 to-black",
     pillColor: "bg-white/10 text-white border-white/20",
     textColor: "text-white",
-    badgeText: "精选",
-    coverImage: "/contact-cover.png",
+    badgeText: "新款",
+    coverImage: "/stick1.png",
   },
 ];
 
@@ -580,10 +604,68 @@ interface KeyframesTabProps {
   onPreviewMyKeyframe: (template: VideoTemplate) => void;
   onDeleteKeyframe: (id: string) => void;
   onUpdateKeyframe?: (id: string, newTitle: string) => void;
+  onAddKeyframe?: (newKf: VideoTemplate) => void;
   isLoggedIn: boolean;
   setShowLoginModal: (v: boolean) => void;
   onFullScreenChange?: (isFull: boolean) => void;
 }
+
+const isHorizontalItem = (kf: any) => {
+  if (kf.isLandscape !== undefined) return kf.isLandscape;
+  if (kf.aspectRatio) return kf.aspectRatio === "16:9";
+  const strMatch = [kf.image || '', kf.title || ''].join(' ');
+  // Exclude 'awa' to avoid classifying awa1.png as horizontal
+  return strMatch.includes('l1') || strMatch.includes('l2') || strMatch.includes('home1') || strMatch.includes('16_9') || strMatch.includes('横版') || strMatch.includes('横幅') || strMatch.includes('slogan');
+};
+
+const getLayoutCols = (items: any[]) => {
+  const leftCol: any[] = [];
+  const rightCol: any[] = [];
+
+  items.forEach((kf) => {
+    const isH = isHorizontalItem(kf);
+    
+    let leftHeight = 0;
+    let leftLastIsH = false;
+    leftCol.forEach((k) => {
+      const isKH = isHorizontalItem(k);
+      leftHeight += isKH ? 0.56 : 1.77;
+      leftLastIsH = isKH;
+    });
+
+    let rightHeight = 0;
+    let rightLastIsH = false;
+    rightCol.forEach((k) => {
+      const isKH = isHorizontalItem(k);
+      rightHeight += isKH ? 0.56 : 1.77;
+      rightLastIsH = isKH;
+    });
+
+    if (isH) {
+      if (leftHeight <= rightHeight) {
+        if (leftLastIsH && !rightLastIsH) {
+          rightCol.push(kf);
+        } else {
+          leftCol.push(kf);
+        }
+      } else {
+        if (rightLastIsH && !leftLastIsH) {
+          leftCol.push(kf);
+        } else {
+          rightCol.push(kf);
+        }
+      }
+    } else {
+      if (leftHeight <= rightHeight) {
+        leftCol.push(kf);
+      } else {
+        rightCol.push(kf);
+      }
+    }
+  });
+
+  return { leftCol, rightCol };
+};
 
 export default function KeyframesTab({
   internalTab,
@@ -597,6 +679,7 @@ export default function KeyframesTab({
   onPreviewMyKeyframe,
   onDeleteKeyframe,
   onUpdateKeyframe,
+  onAddKeyframe,
   isLoggedIn,
   setShowLoginModal,
   onFullScreenChange,
@@ -606,7 +689,7 @@ export default function KeyframesTab({
 
   // Load configuration from localStorage
   const [config, setConfig] = useState<BrandConfig>(() => {
-    const saved = localStorage.getItem("xiaolu_compact_brand_v2");
+    const saved = localStorage.getItem("xiaolu_compact_brand_v3");
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -647,15 +730,15 @@ export default function KeyframesTab({
   });
 
   // Config Modal State
-  const [expandedPresetId, setExpandedPresetId] = useState<string | null>(null);
+  const [expandedPresetId, _setExpandedPresetId] = useState<string | null>(null);
+  const setExpandedPresetId = React.useCallback((id: string | null) => {
+    _setExpandedPresetId(id);
+    if (onFullScreenChange) onFullScreenChange(!!id);
+  }, [onFullScreenChange]);
+  
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
+  const [previewingMyKf, setPreviewingMyKf] = useState<VideoTemplate | null>(null);
   const [configModalStep, setConfigModalStep] = useState<1 | 2>(1);
-
-  React.useEffect(() => {
-    if (onFullScreenChange) {
-      onFullScreenChange(!!expandedPresetId);
-    }
-  }, [expandedPresetId, onFullScreenChange]);
 
   // Compiling progress status
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
@@ -678,7 +761,7 @@ export default function KeyframesTab({
   const [tempSloganTitleInput, setTempSloganTitleInput] = useState("");
 
   const saveConfig = (updated: BrandConfig) => {
-    localStorage.setItem("xiaolu_compact_brand_v2", JSON.stringify(updated));
+    localStorage.setItem("xiaolu_compact_brand_v3", JSON.stringify(updated));
   };
 
   const updateField = (field: keyof BrandConfig, value: string) => {
@@ -855,17 +938,13 @@ export default function KeyframesTab({
             ] as const
           ).map((catName) => {
             let activeStyles = "border-white text-white font-bold";
-            let defaultStyles = "bg-transparent border-neutral-700 text-neutral-400 hover:border-neutral-500";
-            if (internalTab === "mine") {
-              activeStyles = "border-blue-500 text-blue-200 font-bold bg-blue-900/50 shadow-sm";
-              defaultStyles = "bg-transparent border-neutral-800 text-slate-500 hover:border-blue-900/80 hover:text-blue-400";
-            }
+            let defaultStyles = "border-neutral-700 text-neutral-400 hover:border-neutral-500";
             return (
             <button
               key={catName}
               type="button"
               onClick={() => handleCategoryChange(catName)}
-              className={`px-2.5 py-1.5 rounded-xl whitespace-nowrap cursor-pointer transition-all border ${
+              className={`px-2.5 py-1.5 rounded-xl whitespace-nowrap cursor-pointer transition-all border bg-transparent ${
                 activeCategory === catName
                   ? activeStyles
                   : defaultStyles
@@ -877,199 +956,19 @@ export default function KeyframesTab({
           })}
         </div>
 
-        {activeCategory === "水印元素" && (
-          <div className="mb-4 mt-2">
-            <div className="grid grid-cols-2 gap-1.5 select-none">
-              <div
-                onClick={() => {
-                  setLogoPromptMode("new");
-                  setTempLogoUrl("");
-                  setTempLogoTitleInput("");
-                  setShowLogoInputPrompt(true);
-                  if (myLogoUploadRef.current) myLogoUploadRef.current.value = "";
-                }}
-                className="w-full group bg-neutral-900 rounded-xl overflow-hidden border border-[#2c2c2e]/50 shadow-5xs relative select-none cursor-pointer hover:bg-[#252528] transition-colors outline-dashed outline-1 outline-neutral-700 outline-offset-[-1px] flex flex-col"
-              >
-                <div className="relative w-full aspect-[4/3] bg-neutral-900/50 p-2 flex flex-col items-center justify-center text-center gap-1.5 shrink-0">
-                  <Plus size={20} className="text-neutral-500" />
-                  <span className="text-[9px] text-neutral-400 font-medium">
-                    点击新建
-                    <br />
-                    水印图片元素
-                  </span>
-                </div>
-                <div className="px-2 py-2.5 flex flex-1 items-center justify-between bg-neutral-800/80 border-t border-neutral-800">
-                  <h4 className="text-[10.5px] font-bold tracking-tight truncate text-neutral-500">
-                    新建水印元素
-                  </h4>
-                </div>
-              </div>
-              {myLogos.map((logoObj, index) => {
-                const isSelected = config.logoUrl === logoObj.url;
-                return (
-                  <div
-                    key={index}
-                    onClick={() => {
-                      if (!isLoggedIn) {
-                        setShowLoginModal(true);
-                        return;
-                      }
-                      updateField("logoUrl", logoObj.url);
-                    }}
-                    className={`w-full flex flex-col group bg-neutral-900 rounded-xl overflow-hidden border relative select-none cursor-pointer transition-all ${
-                      isSelected
-                        ? "border-emerald-600 ring-[1px] ring-emerald-500/20 shadow-md"
-                        : "border-[#2c2c2e]/50 hover:border-neutral-600 shadow-5xs"
-                    }`}
-                  >
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingLogoIndex(index);
-                        setLogoPromptMode("edit");
-                        setTempLogoUrl(logoObj.url);
-                        setTempLogoTitleInput(logoObj.title);
-                        setShowLogoInputPrompt(true);
-                        if (myLogoUploadRef.current) myLogoUploadRef.current.value = "";
-                      }}
-                      className="relative w-full aspect-[4/3] overflow-hidden shrink-0 select-none bg-neutral-800 p-2 flex items-center justify-center hover:brightness-110 transition-all"
-                    >
-                      <img
-                        src={logoObj.url}
-                        alt={logoObj.title}
-                        className="w-full h-full object-contain"
-                      />
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMyLogos((prev) => prev.filter((_, i) => i !== index));
-                        }}
-                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/90 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 size={12} className="text-white" />
-                      </div>
-                    </div>
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingLogoIndex(index);
-                        setLogoPromptMode("edit");
-                        setTempLogoUrl(logoObj.url);
-                        setTempLogoTitleInput(logoObj.title);
-                        setShowLogoInputPrompt(true);
-                      }}
-                      className="px-2 py-2.5 flex flex-1 items-center justify-between hover:bg-neutral-800 transition-colors"
-                    >
-                      <h4 className={`text-[10.5px] font-bold tracking-tight truncate ${isSelected ? "text-emerald-500" : "text-neutral-200"}`}>
-                        {logoObj.title}
-                      </h4>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {activeCategory === "营销口号" && (
-          <div className="mb-4 mt-2">
-            <div className="grid grid-cols-2 gap-1.5 select-none">
-              <div
-                onClick={() => {
-                  setSloganPromptMode("new");
-                  setTempSloganInput("");
-                  setShowSloganInputPrompt(true);
-                }}
-                className="w-full group bg-neutral-900 rounded-xl overflow-hidden border border-[#2c2c2e]/50 shadow-5xs relative select-none cursor-pointer hover:bg-[#252528] transition-colors outline-dashed outline-1 outline-neutral-700 outline-offset-[-1px] flex flex-col"
-              >
-                <div className="relative w-full aspect-[4/3] bg-neutral-900/50 p-2 flex flex-col items-center justify-center text-center gap-1.5 shrink-0">
-                  <Plus size={20} className="text-neutral-500" />
-                  <span className="text-[9px] text-neutral-400 font-medium">
-                    点击新建
-                    <br />
-                    文字元素口号
-                  </span>
-                </div>
-                <div className="px-2 py-2.5 flex flex-1 items-center justify-between bg-neutral-800/80 border-t border-neutral-800">
-                  <h4 className="text-[10.5px] font-bold tracking-tight truncate text-neutral-500">
-                    新建营销口号
-                  </h4>
-                </div>
-              </div>
-              {mySlogans.map((sloganObj, index) => {
-                const isSelected = config.slogan === sloganObj.slogan;
-                return (
-                  <div
-                    key={index}
-                    onClick={() => {
-                      if (!isLoggedIn) {
-                        setShowLoginModal(true);
-                        return;
-                      }
-                      updateField("slogan", sloganObj.slogan);
-                    }}
-                    className={`w-full flex flex-col group bg-neutral-900 rounded-xl overflow-hidden border relative select-none cursor-pointer transition-all ${
-                      isSelected
-                        ? "border-blue-600 ring-[1px] ring-blue-500/20 shadow-md"
-                        : "border-[#2c2c2e]/50 hover:border-neutral-600 shadow-5xs"
-                    }`}
-                  >
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingSloganIndex(index);
-                        setSloganPromptMode("edit");
-                        setTempSloganInput(sloganObj.slogan);
-                        setTempSloganTitleInput(sloganObj.title);
-                        setShowSloganInputPrompt(true);
-                      }}
-                      className="relative w-full aspect-[4/3] overflow-hidden shrink-0 select-none bg-gradient-to-br from-red-950 to-red-800 p-2 flex items-center justify-center hover:brightness-110 transition-all font-sans"
-                    >
-                      <span className="text-white text-sm font-bold text-center px-1">
-                        {sloganObj.slogan}
-                      </span>
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMySlogans((prev) => prev.filter((_, i) => i !== index));
-                        }}
-                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/90 z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 size={12} className="text-white" />
-                      </div>
-                    </div>
-                    <div 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingSloganIndex(index);
-                        setSloganPromptMode("edit");
-                        setTempSloganInput(sloganObj.slogan);
-                        setTempSloganTitleInput(sloganObj.title);
-                        setShowSloganInputPrompt(true);
-                      }}
-                      className="px-2 py-2.5 flex flex-1 items-center justify-between hover:bg-neutral-800 transition-colors"
-                    >
-                      <h4 className={`text-[10.5px] font-bold tracking-tight truncate ${isSelected ? "text-blue-500" : "text-neutral-200"}`}>
-                        {sloganObj.title}
-                      </h4>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {internalTab === "library" ? (
           <>
 
             {/* Live miniature template choices grid */}
-            {activeCategory !== "水印元素" && activeCategory !== "营销口号" && (
+            {(() => {
+              const filteredPresets = PRESET_TEMPLATES.filter((p) => p.category === activeCategory);
+              const { leftCol: presetLeft, rightCol: presetRight } = getLayoutCols(filteredPresets);
+
+              return (
               <div className="flex gap-1 items-start mt-2.5 pb-2 select-none min-h-[160pt]">
                 {/* Left Column */}
                 <div className="flex-1 flex flex-col gap-1">
-                  {PRESET_TEMPLATES.filter((p) => p.category === activeCategory)
-                    .filter((_, i) => i % 2 === 0)
+                  {presetLeft
                     .map((preset) => {
                       const isSelected = selectedPresetId === preset.id;
                       return (
@@ -1084,7 +983,7 @@ export default function KeyframesTab({
                             setExpandedPresetId(preset.id);
                             setConfigModalStep(1);
                             setKeyframeUrl("");
-                            setIsConfigModalOpen(true);
+                            setIsConfigModalOpen(false);
                           }}
                           className={`group flex flex-col bg-neutral-900 rounded-xl overflow-hidden border cursor-pointer active:scale-[0.99] hover:shadow-2xs transition-all relative select-none ${
                             isSelected
@@ -1094,13 +993,13 @@ export default function KeyframesTab({
                         >
                           {/* Live template vertical poster thumbnail wrapper with dynamic aspect ratio */}
                           <div
-                            className={`relative w-full overflow-hidden shrink-0 select-none bg-neutral-800 ${preset.aspectRatio === "16:9" ? "aspect-[16/9]" : "aspect-[9/16]"}`}
+                            className={`relative w-full overflow-hidden shrink-0 select-none ${preset.category === "营销口号" ? "bg-[#1c1c1e]" : "bg-neutral-800"} ${preset.aspectRatio === "16:9" ? "aspect-[16/9]" : "aspect-[9/16]"}`}
                           >
                             {preset.coverImage ? (
                               <img
                                 src={preset.coverImage}
                                 alt={preset.title}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
                                 referrerPolicy="no-referrer"
                               />
                             ) : (
@@ -1138,8 +1037,7 @@ export default function KeyframesTab({
 
                 {/* Right Column */}
                 <div className="flex-1 flex flex-col gap-1">
-                  {PRESET_TEMPLATES.filter((p) => p.category === activeCategory)
-                    .filter((_, i) => i % 2 === 1)
+                  {presetRight
                     .map((preset) => {
                       const isSelected = selectedPresetId === preset.id;
                       return (
@@ -1154,7 +1052,7 @@ export default function KeyframesTab({
                             setExpandedPresetId(preset.id);
                             setConfigModalStep(1);
                             setKeyframeUrl("");
-                            setIsConfigModalOpen(true);
+                            setIsConfigModalOpen(false);
                           }}
                           className={`group flex flex-col bg-neutral-900 rounded-xl overflow-hidden border cursor-pointer active:scale-[0.99] hover:shadow-2xs transition-all relative select-none ${
                             isSelected
@@ -1164,13 +1062,13 @@ export default function KeyframesTab({
                         >
                           {/* Live template vertical poster thumbnail wrapper with dynamic aspect ratio */}
                           <div
-                            className={`relative w-full overflow-hidden shrink-0 select-none bg-neutral-800 ${preset.aspectRatio === "16:9" ? "aspect-[16/9]" : "aspect-[9/16]"}`}
+                            className={`relative w-full overflow-hidden shrink-0 select-none ${preset.category === "营销口号" ? "bg-[#1c1c1e]" : "bg-neutral-800"} ${preset.aspectRatio === "16:9" ? "aspect-[16/9]" : "aspect-[9/16]"}`}
                           >
                             {preset.coverImage ? (
                               <img
                                 src={preset.coverImage}
                                 alt={preset.title}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
                                 referrerPolicy="no-referrer"
                               />
                             ) : (
@@ -1206,14 +1104,14 @@ export default function KeyframesTab({
                     })}
                 </div>
               </div>
-            )}
+              );
+            })()}
 
           </>
         ) : (
           <div className="mt-4 max-h-full overflow-y-auto flex-1 flex flex-col">
             <div className="flex flex-col flex-1">
               {(() => {
-                if (activeCategory === "水印元素" || activeCategory === "营销口号") return null;
                 const filteredFrames = myKeyframes.filter((kf) => kf.style === activeCategory);
                 if (!isLoggedIn || filteredFrames.length === 0) {
                   return (
@@ -1249,91 +1147,213 @@ export default function KeyframesTab({
                     </div>
                   );
                 }
+                const { leftCol: myLeft, rightCol: myRight } = getLayoutCols(filteredFrames);
+                
                 return (
-                  <div className="grid grid-cols-2 gap-1 select-none">
-                    {filteredFrames.map((kf) => (
-                    <div
-                      key={kf.id}
-                      onClick={() => onPreviewMyKeyframe(kf)}
-                      className="group bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 cursor-pointer active:scale-[0.99] hover:shadow-sm transition-all relative flex flex-col"
-                    >
-                      <div className="relative w-full aspect-[9/16] overflow-hidden bg-neutral-800 shrink-0">
-                        <img
-                          src={kf.image}
-                          alt={kf.title}
-                          className="w-full h-full object-cover"
-                        />
-                        <span className="absolute top-2 left-2 bg-black/45 backdrop-blur-xs text-white px-2 py-0.5 text-[9px] rounded-sm font-bold scale-90 origin-top-left z-20">
-                          {kf.style}
-                        </span>
-                        {kf.isNew && (
-                          <span className="absolute top-2 right-2 bg-red-500 text-white px-1.5 py-0.5 text-[8px] rounded-sm font-bold scale-90 origin-top-right z-20 shadow-sm animate-pulse">
-                            NEW
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        className="px-2 py-2 bg-neutral-900 flex items-center justify-between min-h-[36px]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isLoggedIn) {
-                            setShowLoginModal(true);
-                            return;
-                          }
-                          setEditingId(kf.id);
-                          setEditingName(kf.title.replace(/·/g, " ").trim());
-                        }}
-                      >
-                        {editingId === kf.id ? (
-                          <div className="flex items-center w-full gap-1">
-                            <input
-                              type="text"
-                              autoFocus
-                              className="text-[10.5px] font-bold text-neutral-200 tracking-tight w-full outline-none border-b border-blue-400 bg-blue-50/50 px-1 py-0.5 rounded-[2px]"
-                              value={editingName}
-                              onChange={(e) => setEditingName(e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.stopPropagation();
+                  <div className="flex gap-1 items-start w-full select-none">
+                    <div className="flex-1 flex flex-col gap-1">
+                      {myLeft.map((kf) => {
+                        const isHorizontal = isHorizontalItem(kf);
+                        return (
+                        <div
+                          key={kf.id}
+                          onClick={() => {
+                            if (!isLoggedIn) {
+                              setShowLoginModal(true);
+                              return;
+                            }
+                            setPreviewingMyKf(kf);
+                            const originalPreset = PRESET_TEMPLATES.find(
+                              (p) => p.category === kf.style && kf.id.startsWith(p.id)
+                            ) || PRESET_TEMPLATES.find((p) => p.category === kf.style);
+                            if (originalPreset) {
+                              setSelectedPresetId(originalPreset.id);
+                              setExpandedPresetId(originalPreset.id);
+                              setConfigModalStep(1);
+                              setKeyframeUrl("");
+                            }
+                          }}
+                          className="group bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 cursor-pointer active:scale-[0.99] hover:shadow-sm transition-all relative flex flex-col"
+                        >
+                          <div className={`relative w-full ${isHorizontal ? "aspect-[16/9]" : "aspect-[9/16]"} overflow-hidden bg-neutral-800 shrink-0`}>
+                            <img
+                              src={kf.image}
+                              alt={kf.title}
+                              className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                            />
+                            <span className="absolute top-2 left-2 bg-black/45 backdrop-blur-xs text-white px-2 py-0.5 text-[9px] rounded-sm font-bold scale-90 origin-top-left z-20">
+                              {kf.style}
+                            </span>
+                            {kf.isNew && (
+                              <span className="absolute top-2 right-2 bg-red-500 text-white px-1.5 py-0.5 text-[8px] rounded-sm font-bold scale-90 origin-top-right z-20 shadow-sm animate-pulse">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                        <div
+                          className="px-2 py-2 bg-neutral-900 flex items-center justify-between min-h-[36px]"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isLoggedIn) {
+                              setShowLoginModal(true);
+                              return;
+                            }
+                            setEditingId(kf.id);
+                            setEditingName(kf.title.replace(/·/g, " ").trim());
+                          }}
+                        >
+                          {editingId === kf.id ? (
+                            <div className="flex items-center w-full gap-1">
+                              <input
+                                type="text"
+                                autoFocus
+                                className="text-[10.5px] font-bold text-neutral-200 tracking-tight w-full outline-none border-b border-blue-400 bg-blue-50/50 px-1 py-0.5 rounded-[2px]"
+                                value={editingName}
+                                onChange={(e) => setEditingName(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.stopPropagation();
+                                    if (onUpdateKeyframe)
+                                      onUpdateKeyframe(kf.id, editingName);
+                                    setEditingId(null);
+                                  }
+                                }}
+                                onBlur={() => {
                                   if (onUpdateKeyframe)
                                     onUpdateKeyframe(kf.id, editingName);
                                   setEditingId(null);
-                                }
-                              }}
-                              onBlur={() => {
-                                if (onUpdateKeyframe)
-                                  onUpdateKeyframe(kf.id, editingName);
-                                setEditingId(null);
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <>
-                            <h4 className="text-[10.5px] font-bold text-neutral-200 tracking-tight truncate flex-1">
-                              {kf.title.replace(/·/g, " ").trim()}
-                            </h4>
-                            <div className="flex items-center gap-1.5 ml-1 shrink-0">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!isLoggedIn) {
-                                    setShowLoginModal(true);
-                                    return;
-                                  }
-                                  onDeleteKeyframe(kf.id);
                                 }}
-                                className="text-gray-300 hover:text-red-500 transition-colors"
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                              />
                             </div>
-                          </>
-                        )}
+                          ) : (
+                            <>
+                              <h4 className="text-[10.5px] font-bold text-neutral-200 tracking-tight truncate flex-1">
+                                {kf.title.replace(/·/g, " ").trim()}
+                              </h4>
+                              <div className="flex items-center gap-1.5 ml-1 shrink-0">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!isLoggedIn) {
+                                      setShowLoginModal(true);
+                                      return;
+                                    }
+                                    onDeleteKeyframe(kf.id);
+                                  }}
+                                  className="text-gray-300 hover:text-red-500 transition-colors"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
+                      )})}
                     </div>
-                  ))}
-                </div>
+                    <div className="flex-1 flex flex-col gap-1">
+                      {myRight.map((kf) => {
+                        const isHorizontal = isHorizontalItem(kf);
+                        return (
+                        <div
+                          key={kf.id}
+                          onClick={() => {
+                            if (!isLoggedIn) {
+                              setShowLoginModal(true);
+                              return;
+                            }
+                            setPreviewingMyKf(kf);
+                            const originalPreset = PRESET_TEMPLATES.find(
+                              (p) => p.category === kf.style && kf.id.startsWith(p.id)
+                            ) || PRESET_TEMPLATES.find((p) => p.category === kf.style);
+                            if (originalPreset) {
+                              setSelectedPresetId(originalPreset.id);
+                              setExpandedPresetId(originalPreset.id);
+                              setConfigModalStep(1);
+                              setKeyframeUrl("");
+                            }
+                          }}
+                          className="group bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 cursor-pointer active:scale-[0.99] hover:shadow-sm transition-all relative flex flex-col"
+                        >
+                          <div className={`relative w-full ${isHorizontal ? "aspect-[16/9]" : "aspect-[9/16]"} overflow-hidden bg-neutral-800 shrink-0`}>
+                            <img
+                              src={kf.image}
+                              alt={kf.title}
+                              className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
+                            />
+                            <span className="absolute top-2 left-2 bg-black/45 backdrop-blur-xs text-white px-2 py-0.5 text-[9px] rounded-sm font-bold scale-90 origin-top-left z-20">
+                              {kf.style}
+                            </span>
+                            {kf.isNew && (
+                              <span className="absolute top-2 right-2 bg-red-500 text-white px-1.5 py-0.5 text-[8px] rounded-sm font-bold scale-90 origin-top-right z-20 shadow-sm animate-pulse">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                        <div
+                          className="px-2 py-2 bg-neutral-900 flex items-center justify-between min-h-[36px]"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isLoggedIn) {
+                              setShowLoginModal(true);
+                              return;
+                            }
+                            setEditingId(kf.id);
+                            setEditingName(kf.title.replace(/·/g, " ").trim());
+                          }}
+                        >
+                          {editingId === kf.id ? (
+                            <div className="flex items-center w-full gap-1">
+                              <input
+                                type="text"
+                                autoFocus
+                                className="text-[10.5px] font-bold text-neutral-200 tracking-tight w-full outline-none border-b border-blue-400 bg-blue-50/50 px-1 py-0.5 rounded-[2px]"
+                                value={editingName}
+                                onChange={(e) => setEditingName(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.stopPropagation();
+                                    if (onUpdateKeyframe)
+                                      onUpdateKeyframe(kf.id, editingName);
+                                    setEditingId(null);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  if (onUpdateKeyframe)
+                                    onUpdateKeyframe(kf.id, editingName);
+                                  setEditingId(null);
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <h4 className="text-[10.5px] font-bold text-neutral-200 tracking-tight truncate flex-1">
+                                {kf.title.replace(/·/g, " ").trim()}
+                              </h4>
+                              <div className="flex items-center gap-1.5 ml-1 shrink-0">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!isLoggedIn) {
+                                      setShowLoginModal(true);
+                                      return;
+                                    }
+                                    onDeleteKeyframe(kf.id);
+                                  }}
+                                  className="text-gray-300 hover:text-red-500 transition-colors"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      )})}
+                    </div>
+                  </div>
                 );
               })()}
             </div>
@@ -1342,45 +1362,159 @@ export default function KeyframesTab({
       </div>
 
       {expandedPresetId && (
-        <div className="absolute inset-0 bg-neutral-950 z-30 flex flex-col animate-fade-in font-sans">
+        <div className="absolute inset-0 z-[100] flex flex-col animate-fade-in font-sans overflow-hidden rounded-[40px] xl:rounded-[44px] transform-gpu mix-blend-normal">
+          {/* Frosted Glass Background */}
+          <div className="absolute inset-0 z-0 pointer-events-none rounded-[40px] xl:rounded-[44px] overflow-hidden transform-gpu bg-neutral-800" style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}>
+          </div>
+
           <div className="relative z-40 px-6 pt-11 flex items-center justify-between pointer-events-auto">
             <button
               onClick={() => {
                 setExpandedPresetId(null);
                 setIsConfigModalOpen(false);
+                setPreviewingMyKf(null);
               }}
-              className="min-touch flex items-center justify-center text-white bg-black/30 backdrop-blur-md rounded-full shadow-md hover:bg-black/50 transition-all cursor-pointer"
+              className="min-touch flex items-center justify-center text-white bg-white/10 backdrop-blur-lg border border-white/20 rounded-full shadow-md hover:bg-white/20 transition-all cursor-pointer"
             >
               <ChevronLeft size={22} className="stroke-[2.5]" />
             </button>
-            <div className="bg-black/30 backdrop-blur-md rounded-full px-4 py-1.5 flex items-center justify-center text-white text-[13px] font-bold">
+            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-full px-4 py-1.5 flex items-center justify-center text-white text-[13px] font-bold shadow-md">
               {activePreset.title}
             </div>
             <div className="w-8 shrink-0"></div>
           </div>
 
-          <div className="absolute inset-0 w-full h-full pointer-events-none z-0">
-            {activePreset.coverImage && activeCategory !== "营销口号" ? (
-              <img
-                src={activePreset.coverImage}
-                alt={activePreset.title}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
+          <div className={`absolute w-full z-0 flex items-center justify-center ${activePreset.coverImage ? "top-[90px] bottom-[100px] px-0 pointer-events-auto" : "inset-0 h-full pointer-events-none"} ${activeCategory === "营销口号" ? "bg-[#1c1c1e]" : ""}`}>
+            {activePreset.coverImage ? (
+              <>
+                <img
+                  src={
+                    activePreset.coverImage === "/cover1.png" ? "/cover1empty.png" : 
+                    activePreset.coverImage === "/coverl1.png" ? "/coverl1empty.png" : 
+                    activePreset.coverImage === "/cover2.png" ? "/cover2empty.png" :
+                    activePreset.coverImage === "/cover3.jpeg" ? "/cover3empty.png" :
+                    activePreset.coverImage === "/con1.png" ? "/con1empty.png" :
+                    activePreset.coverImage === "/conl2.png" ? "/conl2empty.png" :
+                    activePreset.coverImage === "/awa1.png" ? "/awa1empty.png" :
+                    activePreset.coverImage
+                  }
+                  alt={activePreset.title}
+                  className={`w-full h-full object-contain shadow-[0_12px_40px_rgb(0,0,0,0.5)] transform-gpu ${activePreset.aspectRatio === "16:9" ? "rounded-none" : "rounded-md"}`}
+                  referrerPolicy="no-referrer"
+                />
+                {activeCategory === "水印元素" && (
+                  <div className="absolute top-12 left-6 right-6 flex items-center gap-2 pointer-events-none z-10 p-2 mix-blend-plus-lighter">
+                    {config.logoUrl && (
+                      <div className="w-8 h-8 rounded-full bg-white/20 p-0.5 overflow-hidden backdrop-blur shrink-0">
+                        <img src={config.logoUrl} className="w-full h-full object-cover rounded-full" />
+                      </div>
+                    )}
+                    {(config.companyName || config.logoUrl) && (
+                      <span className="text-white text-lg font-bold drop-shadow-md truncate">
+                        {config.companyName || "公司名称"}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
             ) : (
               renderTemplateInner(activePreset.id, config)
             )}
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
           </div>
 
           {!isConfigModalOpen && (
-            <div className="absolute flex-col bottom-10 left-6 right-6 z-40 flex gap-3 animate-fade-in">
+            <div className="absolute flex-col bottom-10 left-6 right-6 z-40 flex gap-3 animate-fade-in pointer-events-auto">
+              {activeCategory === "营销口号" && !previewingMyKf && (
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    placeholder="输入营销口号..."
+                    value={config.slogan || ""}
+                    onChange={(e) => updateField("slogan", e.target.value)}
+                    className="w-full bg-[#2a2a2c]/90 backdrop-blur-md text-white placeholder-neutral-400 text-sm rounded-2xl px-4 py-3.5 pr-10 outline-none border border-neutral-700/50 focus:border-blue-500 transition-all font-bold shadow-lg"
+                  />
+                  {config.slogan && (
+                    <button
+                      onClick={() => updateField("slogan", "")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+              )}
+              {activeCategory === "水印元素" && !previewingMyKf && (
+                <div className="flex gap-2 w-full">
+                  <div
+                    className="h-[48px] w-[48px] shrink-0 bg-[#2a2a2c]/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center cursor-pointer border border-neutral-700/50 shadow-lg overflow-hidden relative transition-all hover:bg-neutral-800"
+                    onClick={() => {
+                      const el = document.getElementById('quick-logo-upload');
+                      if (el) el.click();
+                    }}
+                  >
+                    {config.logoUrl ? (
+                      <img src={config.logoUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <span className="text-[10px] text-neutral-400 font-bold leading-tight text-center">上传<br/>标徽</span>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="请输入公司名称..."
+                    value={config.companyName || ""}
+                    onChange={(e) => updateField("companyName", e.target.value)}
+                    className="flex-1 bg-[#2a2a2c]/90 backdrop-blur-md text-white placeholder-neutral-400 text-sm rounded-2xl px-4 h-[48px] outline-none border border-neutral-700/50 focus:border-blue-500 transition-all font-bold shadow-lg"
+                  />
+                  <input
+                    id="quick-logo-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageUploaded("logoUrl", e)}
+                  />
+                </div>
+              )}
               <button
-                onClick={() => setIsConfigModalOpen(true)}
-                className="w-full bg-blue-600 text-white rounded-[20px] py-3.5 font-bold text-[15px] shadow-lg shadow-blue-600/30 active:scale-[0.98] transition-transform flex justify-center items-center gap-2 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (previewingMyKf) {
+                    setExpandedPresetId(null);
+                    setPreviewingMyKf(null);
+                  } else {
+                    if (onAddKeyframe) {
+                      const emptyImgMap: Record<string, string> = {
+                        "/cover1.png": "/cover1empty.png",
+                        "/coverl1.png": "/coverl1empty.png",
+                        "/cover2.png": "/cover2empty.png",
+                        "/cover3.jpeg": "/cover3empty.png",
+                        "/con1.png": "/con1empty.png",
+                        "/conl2.png": "/conl2empty.png",
+                        "/awa1.png": "/awa1empty.png",
+                      };
+                      const finalImage = activePreset.coverImage ? (emptyImgMap[activePreset.coverImage] || activePreset.coverImage) : "";
+
+                      onAddKeyframe({
+                        id: `${activePreset.id}_${Date.now()}`,
+                        title: activePreset.title,
+                        style: activePreset.category,
+                        description: activePreset.desc || "",
+                        image: finalImage,
+                        stats: "0",
+                        tags: [],
+                        durationSec: 15,
+                        isNew: true,
+                        isLandscape: activePreset.aspectRatio === "16:9"
+                      } as any);
+                    }
+                    setExpandedPresetId(null);
+                    setPreviewingMyKf(null);
+                  }
+                }}
+                className="w-full bg-blue-600 text-white shadow-blue-600/30 shadow-lg rounded-[20px] py-3.5 font-bold text-[15px] hover:bg-blue-700 active:scale-[0.98] transition-transform flex justify-center items-center gap-2 cursor-pointer"
               >
-                <Sparkles size={16} className="fill-white" />
-                配置此模板
+                {previewingMyKf ? "保存" : "保存到我的关键帧"}
               </button>
             </div>
           )}
@@ -1647,7 +1781,7 @@ export default function KeyframesTab({
                       placeholder={
                         activePreset.category === "企业荣誉"
                           ? "请输入荣誉奖项..."
-                          : "请输入核心宣传语..."
+                          : "输入营销口号..."
                       }
                       className="w-full bg-neutral-800/50 text-neutral-200 placeholder-gray-400 text-xs rounded-xl px-3.5 py-3 outline-none border border-neutral-700/60 focus:bg-neutral-900 focus:border-blue-400 transition-all font-sans font-bold shadow-5xs"
                     />
