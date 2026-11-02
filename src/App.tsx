@@ -101,7 +101,7 @@ export default function App() {
   });
 
   const [myLogos, setMyLogos] = useState<{ title: string; url: string }[]>([
-    { title: "标准企业标徽", url: "/logo1.png" },
+    { title: "标准企业标徽", url: `${import.meta.env.BASE_URL}logo1.png` },
   ]);
   const [mySlogans, setMySlogans] = useState<{ title: string; slogan: string }[]>([]);
 
@@ -133,7 +133,7 @@ export default function App() {
       resolution: "4K (2160p)",
       fileSize: "42.8 MB",
       date: "今天 11:30",
-      image: "/moban.png"
+      image: `${import.meta.env.BASE_URL}moban.png`
     },
     {
       id: "exp-2",
@@ -141,7 +141,7 @@ export default function App() {
       resolution: "1080p (60fps)",
       fileSize: "24.5 MB",
       date: "05-25",
-      image: "/moban2.png"
+      image: `${import.meta.env.BASE_URL}moban2.png`
     },
     {
       id: "exp-3",
@@ -149,7 +149,7 @@ export default function App() {
       resolution: "1080p",
       fileSize: "19.1 MB",
       date: "05-21",
-      image: "/moban.png"
+      image: `${import.meta.env.BASE_URL}moban.png`
     },
   ]);
 
@@ -444,7 +444,7 @@ export default function App() {
         title:
           kfs.length > 0 ? kfs[0].title || "混合关键帧视频" : "AI 生成视频",
         style: kfs.length > 0 ? kfs[0].style || "合成风" : "合成风",
-        image: materialUrl || (kfs.length > 0 ? kfs[0].image : "/mock.png"),
+        image: materialUrl || (kfs.length > 0 ? kfs[0].image : `${import.meta.env.BASE_URL}mock.png`),
         stats: "基于您的关键帧自动生成",
         tags: ["#AI智能推荐", "#精选素材"],
         description: `使用您保存的关键帧生成的高清视频。`,

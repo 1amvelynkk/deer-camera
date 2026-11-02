@@ -1842,7 +1842,7 @@ export default function VideoPreview({
       {/* Background Media Representation */}
       <div className="absolute inset-0 w-full h-full">
         <img
-          src={isMyKeyframePreview ? "/mock.png" : template.image}
+          src={isMyKeyframePreview ? `${import.meta.env.BASE_URL}mock.png` : template.image}
           alt={template.title}
           className={`w-full h-full object-cover transition-transform duration-[4000ms] ease-out ${
             isPlaying ? "scale-105" : "scale-100"

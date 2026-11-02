@@ -560,7 +560,7 @@ export default function TemplateCreateTab({
                               id: `slogan_${index}`,
                               title: sloganObj.title,
                               style: "营销口号",
-                              image: "/slogan-mock.png", // Doesn't matter
+                              image: `${import.meta.env.BASE_URL}logo2.png`, // Doesn't matter
                               description: sloganObj.slogan,
                               stats: "", durationSec: 0, tags: []
                             };

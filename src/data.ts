@@ -17,7 +17,7 @@ export const MockTemplates: VideoTemplate[] = [
     id: "temp_conl1",
     title: "产品实景推介",
     style: "产品介绍",
-    image: "/produ2.png",
+    image: `${import.meta.env.BASE_URL}produ2.png`,
     stats: "已有3.5K人使用",
     tags: ["#横屏", "#产品展示", "#爆款推荐"],
     description: "经典横屏全景比例，高清展示产品工艺与使用场景。",
@@ -39,7 +39,7 @@ export const MockTemplates: VideoTemplate[] = [
     id: "temp_delivery",
     title: "产品发布现场",
     style: "产品介绍",
-    image: "/produ1.png",
+    image: `${import.meta.env.BASE_URL}produ1.png`,
     stats: "已有1.2K人使用",
     tags: ["#新星产品", "#极简科技", "#产品介绍"],
     description: "全方位拆解产品软硬件技术参数，高科技转场光效瞬间吸睛，产品首发推荐！",
@@ -79,7 +79,7 @@ export const MockTemplates: VideoTemplate[] = [
     id: "temp_conl2",
     title: "企业发展史",
     style: "企业宣传",
-    image: "/company1.png",
+    image: `${import.meta.env.BASE_URL}company1.png`,
     stats: "已有2.1K人使用",
     tags: ["#横屏", "#大屏播放", "#科技风"],
     description: "16:9高级电影感画幅，塑造品牌宏大叙事与科技实力。",
@@ -93,21 +93,21 @@ export const CreationBanners = [
     id: "b2",
     title: "公司简介 快速制作",
     tagline: "定制你的专属印记",
-    image: "/home3.png", // High-rise steel/glass office building matching image
+    image: `${import.meta.env.BASE_URL}home3.png`, // High-rise steel/glass office building matching image
     templateId: "temp_glass_building"
   },
   {
     id: "b1",
     title: "客户成功 信任交付",
     tagline: "激发无限精彩纷呈",
-    image: "/home2.png", // office paperwork with hands
+    image: `${import.meta.env.BASE_URL}home2.png`, // office paperwork with hands
     templateId: "temp_retail"
   },
   {
     id: "b3",
     title: "懂产品 懂营销",
     tagline: "真正的视频营销利器",
-    image: "/home1.jpg", // Yellow shopping elements/bags
+    image: `${import.meta.env.BASE_URL}home1.jpg`, // Yellow shopping elements/bags
     templateId: "temp_delivery"
   }
 ];

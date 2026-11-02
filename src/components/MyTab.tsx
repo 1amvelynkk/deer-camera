@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  User, 
-  Award, 
-  ShieldCheck, 
-  History, 
-  Star, 
-  Settings, 
-  CreditCard, 
-  Sparkles, 
-  Clock, 
-  ArrowRight, 
-  Download, 
-  Layers, 
-  FolderLock, 
-  Headphones, 
-  Receipt, 
-  X, 
-  ChevronRight, 
-  Trash2, 
-  Edit3, 
+import {
+  User,
+  Award,
+  ShieldCheck,
+  History,
+  Star,
+  Settings,
+  CreditCard,
+  Sparkles,
+  Clock,
+  ArrowRight,
+  Download,
+  Layers,
+  FolderLock,
+  Headphones,
+  Receipt,
+  X,
+  ChevronRight,
+  Trash2,
+  Edit3,
   AlertCircle,
   Copy,
   Plus,
@@ -90,13 +90,13 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
 
   // 3. Render Status Queue (Generating)
   const [renders, setRenders] = useState<RenderItem[]>([
-    { id: "render-1", title: "中药提取流水线智能特写视频", progress: 68, status: "rendering", image: "/moban.png" },
-    { id: "render-2", title: "高净空气流体力学制药车间实景", progress: 0, status: "queued", image: "/moban2.png" },
-    { id: "render-3", title: "华康医药产品宣发视频1", progress: 0, status: "queued", image: "/moban.png" },
+    { id: "render-1", title: "中药提取流水线智能特写视频", progress: 68, status: "rendering", image: `${import.meta.env.BASE_URL}moban.png` },
+    { id: "render-2", title: "高净空气流体力学制药车间实景", progress: 0, status: "queued", image: `${import.meta.env.BASE_URL}moban2.png` },
+    { id: "render-3", title: "华康医药产品宣发视频1", progress: 0, status: "queued", image: `${import.meta.env.BASE_URL}moban.png` },
     { id: "render-4", title: "华康医药工厂实力展示", progress: 0, status: "queued" }
   ]);
 
-  // 5. Export History Records 
+  // 5. Export History Records
   // (Lifted to App.tsx)
 
   // Interactive Toast Bubble handled by App.tsx globally via triggerToast prop
@@ -109,12 +109,12 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
           title: e.detail.title,
           progress: 5,
           status: "rendering",
-          image: ["/moban.png", "/moban2.png"][Math.floor(Math.random() * 2)]
+          image: [`${import.meta.env.BASE_URL}moban.png`, `${import.meta.env.BASE_URL}moban2.png`][Math.floor(Math.random() * 2)]
         },
         ...prev
       ]);
     };
-    
+
     window.addEventListener("add-rendering-item", handleAddRenderingItem);
     return () => window.removeEventListener("add-rendering-item", handleAddRenderingItem);
   }, []);
@@ -124,7 +124,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
     const interval = setInterval(() => {
       setRenders(prev => {
         let completedItems: typeof prev = [];
-        
+
         const nextRenders = prev.map(item => {
           if (item.status === "rendering") {
             const nextProgress = item.progress + 4;
@@ -153,7 +153,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                 resolution: "1080p (HD)",
                 fileSize: `${(Math.random() * 20 + 15).toFixed(1)} MB`,
                 date: "刚刚",
-                image: item.image || "/moban.png"
+                image: item.image || `${import.meta.env.BASE_URL}moban.png`
               };
               setExports(e => {
                 // Prevent duplicate insertions caused by StrictMode
@@ -213,10 +213,10 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
   return (
     <div id="reconstructed-my-tab" className="overflow-y-auto h-full text-neutral-200 bg-[#0a0a0b] select-none">
       <div className="flex flex-col min-h-full space-y-4 pt-4">
-        
+
         {/* A. USER HIGHER PROFILE CARD (Account Settings Box) */}
       <div className="bg-neutral-900 rounded-2xl mx-4 p-4 mt-2 shadow-sm border border-neutral-800 relative pb-3 flex flex-col items-center">
-        
+
         {/* Top-Right: Logout */}
         <div className="absolute top-3 right-3 flex flex-col items-center gap-1.5">
           {isLoggedIn && (
@@ -235,7 +235,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
         </div>
 
         {/* Circular Interactive Avatar */}
-        <div 
+        <div
           className="relative group shrink-0 cursor-pointer login-modal-content mt-3"
           onClick={() => {
             if (!isLoggedIn) {
@@ -254,11 +254,11 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
             )}
           </div>
         </div>
-        <input 
-          type="file" 
-          ref={avatarUploadRef} 
-          accept="image/*" 
-          className="hidden" 
+        <input
+          type="file"
+          ref={avatarUploadRef}
+          accept="image/*"
+          className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -272,13 +272,13 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
               }
             };
             reader.readAsDataURL(file);
-          }} 
+          }}
         />
 
         {/* Account Details / Nickname */}
         <div className="flex flex-col items-center gap-1.5 min-w-0 mt-3 mb-1 w-full relative">
           {!isLoggedIn ? (
-            <button 
+            <button
               onClick={() => setShowLoginModal(true)}
               className="text-[15px] font-black text-white leading-tight select-none cursor-pointer outline-none hover:text-blue-500 transition-colors login-modal-content mt-1"
             >
@@ -300,10 +300,10 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
 
               {/* Username row */}
               {isEditingName ? (
-                <input 
-                  type="text" 
-                  value={userName} 
-                  onChange={(e) => setUserName(e.target.value)} 
+                <input
+                  type="text"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
                   onBlur={() => {
                      setIsEditingName(false);
                      if (userName.trim()) localStorage.setItem("xiaolu_user_nickname", userName);
@@ -318,7 +318,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                   className="text-[15px] font-black text-white text-center border-b border-neutral-600 outline-none leading-tight bg-transparent max-w-[150px]"
                 />
               ) : (
-                <div 
+                <div
                   className="flex items-center justify-center group cursor-pointer relative"
                   onClick={() => setIsEditingName(true)}
                 >
@@ -332,7 +332,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
               )}
             </>
           )}
-          
+
           {!isLoggedIn && (
             <span className="text-[10px] text-gray-400 mt-0.5">
               登录后体验更多强大功能
@@ -345,15 +345,15 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
 
       {/* B. UTILITIES (功能宫格) */}
       <div className="flex justify-between mx-4 my-2 gap-2">
-        <button 
+        <button
           onClick={() => isLoggedIn ? setShowRechargeModal(true) : setShowLoginModal(true)}
           className="flex-1 flex flex-row items-center justify-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer active:scale-[0.98] py-3 bg-[#1c1c1e] rounded-[12px] border border-white/5"
         >
           <Award size={15} className="text-white/90 fill-white/20" />
           <span className="text-[12px] font-medium text-white/90 tracking-wide">套餐充值</span>
         </button>
-        
-        <button 
+
+        <button
           onClick={() => isLoggedIn ? setShowContactModal(true) : setShowLoginModal(true)}
           className="flex-1 flex flex-row items-center justify-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer active:scale-[0.98] py-3 bg-[#1c1c1e] rounded-[12px] border border-white/5"
         >
@@ -361,7 +361,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
           <span className="text-[12px] font-medium text-white/90 tracking-wide">人工客服</span>
         </button>
 
-        <button 
+        <button
           onClick={() => isLoggedIn ? setShowInvoicingModal(true) : setShowLoginModal(true)}
           className="flex-1 flex flex-row items-center justify-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer active:scale-[0.98] py-3 bg-[#1c1c1e] rounded-[12px] border border-white/5"
         >
@@ -372,7 +372,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
 
       {/* C, D & E merged into TABS SECTION */}
       <div className="text-left overflow-hidden flex-1 flex flex-col">
-        
+
         {/* Sub-tabs text row matching image 2 style */}
         <div className="flex border-b border-neutral-800/80 mt-2 sticky top-0 bg-[#0a0a0b] z-10 w-full">
             <div className="flex w-full justify-around px-2 pt-3">
@@ -427,7 +427,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                        </div>
 
                        <div className="flex w-full justify-end items-end mt-auto">
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCancelRender(item.id, item.title);
@@ -456,20 +456,20 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
             ) : (
               <div className="grid grid-cols-3 gap-[1px] mt-0.5">
                 {displayExports.map((item) => (
-                  <div 
+                  <div
                     key={item.id}
                     className="group cursor-pointer relative aspect-[3/4] bg-neutral-800 shrink-0 overflow-hidden"
                     onClick={() => {
                       onSelectTemplate({
                          id: "generated_from_history_" + item.id,
-                         image: item.image || "/mock.png", 
-                         title: item.title, 
+                         image: item.image || `${import.meta.env.BASE_URL}mock.png`,
+                         title: item.title,
                          stats: "您的AI作品",
-                         tags: ["#AI生成", "#超清档案"], 
+                         tags: ["#AI生成", "#超清档案"],
                          description: `这是您在创作区生成的历史记录片段：【${item.title}】。您可以再次回顾它的完整内容与分镜设定。`,
                          style: "创作记录",
                          durationSec: 15
-                      }); 
+                      });
                     }}
                   >
                     <div className="absolute inset-0 bg-neutral-900 border border-emerald-500/10 hover:border-emerald-500/30 transition-all">
@@ -516,8 +516,8 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                     onClick={() => onSelectTemplate(template)}
                     className="group bg-neutral-800 cursor-pointer overflow-hidden relative aspect-[3/4]"
                   >
-                    <img 
-                      src={template.image} 
+                    <img
+                      src={template.image}
                       alt={template.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[400ms] select-none"
                     />
@@ -545,9 +545,9 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                           : "bg-black/30 hover:bg-black/50 text-white backdrop-blur-xs"
                       }`}
                     >
-                      <Star 
-                        size={15} 
-                        className={favorites.some(f => f.id === template.id) ? "fill-white text-white" : "text-white/90"} 
+                      <Star
+                        size={15}
+                        className={favorites.some(f => f.id === template.id) ? "fill-white text-white" : "text-white/90"}
                       />
                     </button>
                   </div>
@@ -563,7 +563,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
       {/* H. FOOTER MARGINS / TECH BRAND (Humble minimal footer credit line only) */}
       <div className="text-center py-2 select-none">
         <p className="text-[8.5px] text-neutral-500 tracking-wider">
-   
+
         </p>
       </div>
 
@@ -574,8 +574,8 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
       {showRechargeModal && (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 px-6 select-none leading-relaxed">
           <div className="bg-gradient-to-br from-[#1c1c1e]/90 to-[#0c0c0e]/70 backdrop-blur-3xl rounded-[32px] p-5 text-neutral-200 border border-white/10 w-full max-w-xs shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_2px_4px_rgba(255,255,255,0.15),inset_0_-1px_2px_rgba(255,255,255,0.02)] relative select-none">
-            
-            <button 
+
+            <button
               onClick={() => setShowRechargeModal(false)}
               className="absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-neutral-800/50 hover:bg-gray-150 flex items-center justify-center text-gray-400"
             >
@@ -588,9 +588,9 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
             </div>
 
             <div className="space-y-2.5">
-              
+
               {/* Option 1: Standard */}
-              <div 
+              <div
                 onClick={() => handleSelectPlan("standard", "¥99", 15)}
                 className={`p-2.5 rounded-xl cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center bg-gradient-to-br from-blue-950 via-slate-900 to-black border border-blue-900/50 shadow-md shadow-blue-900/10 hover:shadow-blue-900/40`}
               >
@@ -604,7 +604,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
               </div>
 
               {/* Option 2: Premium (Recommended) */}
-              <div 
+              <div
                 onClick={() => handleSelectPlan("premium", "¥499", 120)}
                 className="p-2.5 border-2 border-indigo-500 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center relative"
               >
@@ -621,7 +621,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
               </div>
 
               {/* Option 3: Unlimited */}
-              <div 
+              <div
                 onClick={() => handleSelectPlan("unlimited", "¥1999", 1500)}
                 className="p-2.5 border border-neutral-700 hover:border-amber-500 rounded-xl bg-neutral-800/50/50 hover:bg-amber-50/10 cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center"
               >
@@ -647,8 +647,8 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
       {showInvoicingModal && (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 px-6 select-none leading-relaxed">
           <div className="bg-gradient-to-br from-[#1c1c1e]/90 to-[#0c0c0e]/70 backdrop-blur-3xl rounded-[32px] p-5 text-neutral-200 border border-white/10 w-full max-w-xs shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_2px_4px_rgba(255,255,255,0.15),inset_0_-1px_2px_rgba(255,255,255,0.02)] relative select-none">
-            
-            <button 
+
+            <button
               onClick={() => setShowInvoicingModal(false)}
               className="absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-neutral-800/50 hover:bg-gray-150 flex items-center justify-center text-gray-400"
             >
@@ -657,7 +657,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
 
             <div className="text-center space-y-1 mb-4 flex flex-col items-center">
               <span className="text-xs bg-purple-500/20 text-purple-300 font-extrabold px-2.5 py-0.5 rounded-full inline-block">发票开具与对账明细</span>
-              
+
               <div className="flex bg-neutral-800/50 p-1 rounded-full w-4/5 mt-3">
                 <button
                   onClick={() => setActiveInvoicingTab("unapplied")}
@@ -702,7 +702,7 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="pt-2 mt-1 shrink-0 relative">
                   <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
                   <button
@@ -756,8 +756,8 @@ export default function MyTab({ creationsCount, onSelectTemplate, favorites, onT
       {showContactModal && (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 px-6 select-none leading-relaxed">
           <div className="bg-gradient-to-br from-[#1c1c1e]/90 to-[#0c0c0e]/70 backdrop-blur-3xl rounded-[32px] p-5 text-neutral-200 border border-white/10 w-full max-w-xs shadow-[0_16px_40px_rgba(0,0,0,0.6),inset_0_2px_4px_rgba(255,255,255,0.15),inset_0_-1px_2px_rgba(255,255,255,0.02)] relative select-none">
-            
-            <button 
+
+            <button
               onClick={() => setShowContactModal(false)}
               className="absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-neutral-800/50 hover:bg-gray-150 flex items-center justify-center text-gray-400"
             >

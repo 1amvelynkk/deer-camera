@@ -63,7 +63,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-[#22c55e] text-white border-emerald-500",
     textColor: "text-white",
     badgeText: "推荐",
-    coverImage: "/coverl1.png",
+    coverImage: `${import.meta.env.BASE_URL}coverl1.png`,
   },
   {
     id: "temp_greeland_clean",
@@ -75,7 +75,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-[#22c55e] text-white border-emerald-500",
     textColor: "text-white",
     badgeText: "推荐",
-    coverImage: "/cover1.png",
+    coverImage: `${import.meta.env.BASE_URL}cover1.png`,
   },
   {
     id: "temp_intro_clean",
@@ -87,7 +87,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-blue-600 text-white border-blue-500",
     textColor: "text-white",
     badgeText: "精选",
-    coverImage: "/cover2.png",
+    coverImage: `${import.meta.env.BASE_URL}cover2.png`,
   },
   {
     id: "temp_intro_dark",
@@ -99,7 +99,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-amber-500 text-slate-950 border-amber-600",
     textColor: "text-white",
     badgeText: "高端",
-    coverImage: "/cover3.jpeg",
+    coverImage: `${import.meta.env.BASE_URL}cover3.jpeg`,
   },
   {
     id: "temp_special_feature_16_9",
@@ -111,7 +111,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-orange-600 text-white border-orange-500",
     textColor: "text-white",
     badgeText: "核心",
-    coverImage: "/awal1.png",
+    coverImage: `${import.meta.env.BASE_URL}awal1.png`,
   },
   {
     id: "temp_special_feature",
@@ -123,7 +123,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-orange-600 text-white border-orange-500",
     textColor: "text-white",
     badgeText: "核心",
-    coverImage: "/awa1.png",
+    coverImage: `${import.meta.env.BASE_URL}awa1.png`,
   },
   {
     id: "temp_outro_guard",
@@ -135,7 +135,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-emerald-600 text-white border-emerald-450",
     textColor: "text-white",
     badgeText: "经典",
-    coverImage: "/con1.png",
+    coverImage: `${import.meta.env.BASE_URL}con1.png`,
   },
   {
     id: "temp_outro_guard_16_9_1",
@@ -147,7 +147,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-amber-600 text-white border-amber-500",
     textColor: "text-slate-100",
     badgeText: "高端",
-    coverImage: "/conl1.jpeg",
+    coverImage: `${import.meta.env.BASE_URL}conl1.jpeg`,
   },
   {
     id: "temp_outro_guard_16_9_2",
@@ -159,7 +159,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-blue-600 text-white border-blue-450",
     textColor: "text-white",
     badgeText: "精选",
-    coverImage: "/conl2.png",
+    coverImage: `${import.meta.env.BASE_URL}conl2.png`,
   },
   {
     id: "temp_slogan_1",
@@ -171,7 +171,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-red-600 text-white border-red-500",
     textColor: "text-white",
     badgeText: "热门",
-    coverImage: "/slogan1.png",
+    coverImage: `${import.meta.env.BASE_URL}slogan1.png`,
   },
   {
     id: "temp_slogan_2",
@@ -183,7 +183,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-orange-600 text-white border-orange-500",
     textColor: "text-white",
     badgeText: "新款",
-    coverImage: "/slogan2.png",
+    coverImage: `${import.meta.env.BASE_URL}slogan2.png`,
   },
   {
     id: "temp_slogan_3",
@@ -195,7 +195,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-purple-600 text-white border-purple-500",
     textColor: "text-white",
     badgeText: "精选",
-    coverImage: "/slogan3.png",
+    coverImage: `${import.meta.env.BASE_URL}slogan3.png`,
   },
   {
     id: "temp_watermark_2",
@@ -207,7 +207,7 @@ const PRESET_TEMPLATES: TemplatePreset[] = [
     pillColor: "bg-white/10 text-white border-white/20",
     textColor: "text-white",
     badgeText: "新款",
-    coverImage: "/stick1.png",
+    coverImage: `${import.meta.env.BASE_URL}stick1.png`,
   },
 ];
 
@@ -624,7 +624,7 @@ const getLayoutCols = (items: any[]) => {
 
   items.forEach((kf) => {
     const isH = isHorizontalItem(kf);
-    
+
     let leftHeight = 0;
     let leftLastIsH = false;
     leftCol.forEach((k) => {
@@ -735,7 +735,7 @@ export default function KeyframesTab({
     _setExpandedPresetId(id);
     if (onFullScreenChange) onFullScreenChange(!!id);
   }, [onFullScreenChange]);
-  
+
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
   const [previewingMyKf, setPreviewingMyKf] = useState<VideoTemplate | null>(null);
   const [configModalStep, setConfigModalStep] = useState<1 | 2>(1);
@@ -1148,7 +1148,7 @@ export default function KeyframesTab({
                   );
                 }
                 const { leftCol: myLeft, rightCol: myRight } = getLayoutCols(filteredFrames);
-                
+
                 return (
                   <div className="flex gap-1 items-start w-full select-none">
                     <div className="flex-1 flex flex-col gap-1">
@@ -1389,13 +1389,13 @@ export default function KeyframesTab({
               <>
                 <img
                   src={
-                    activePreset.coverImage === "/cover1.png" ? "/cover1empty.png" : 
-                    activePreset.coverImage === "/coverl1.png" ? "/coverl1empty.png" : 
-                    activePreset.coverImage === "/cover2.png" ? "/cover2empty.png" :
-                    activePreset.coverImage === "/cover3.jpeg" ? "/cover3empty.png" :
-                    activePreset.coverImage === "/con1.png" ? "/con1empty.png" :
-                    activePreset.coverImage === "/conl2.png" ? "/conl2empty.png" :
-                    activePreset.coverImage === "/awa1.png" ? "/awa1empty.png" :
+                    activePreset.coverImage === `${import.meta.env.BASE_URL}cover1.png` ? `${import.meta.env.BASE_URL}cover1empty.png` :
+                    activePreset.coverImage === `${import.meta.env.BASE_URL}coverl1.png` ? `${import.meta.env.BASE_URL}coverl1empty.png` :
+                    activePreset.coverImage === `${import.meta.env.BASE_URL}cover2.png` ? `${import.meta.env.BASE_URL}cover2empty.png` :
+                    activePreset.coverImage === `${import.meta.env.BASE_URL}cover3.jpeg` ? `${import.meta.env.BASE_URL}cover3empty.png` :
+                    activePreset.coverImage === `${import.meta.env.BASE_URL}con1.png` ? `${import.meta.env.BASE_URL}con1empty.png` :
+                    activePreset.coverImage === `${import.meta.env.BASE_URL}conl2.png` ? `${import.meta.env.BASE_URL}conl2empty.png` :
+                    activePreset.coverImage === `${import.meta.env.BASE_URL}awa1.png` ? `${import.meta.env.BASE_URL}awa1empty.png` :
                     activePreset.coverImage
                   }
                   alt={activePreset.title}
@@ -1485,13 +1485,13 @@ export default function KeyframesTab({
                   } else {
                     if (onAddKeyframe) {
                       const emptyImgMap: Record<string, string> = {
-                        "/cover1.png": "/cover1empty.png",
-                        "/coverl1.png": "/coverl1empty.png",
-                        "/cover2.png": "/cover2empty.png",
-                        "/cover3.jpeg": "/cover3empty.png",
-                        "/con1.png": "/con1empty.png",
-                        "/conl2.png": "/conl2empty.png",
-                        "/awa1.png": "/awa1empty.png",
+                        [`${import.meta.env.BASE_URL}cover1.png`]: `${import.meta.env.BASE_URL}cover1empty.png`,
+                        [`${import.meta.env.BASE_URL}coverl1.png`]: `${import.meta.env.BASE_URL}coverl1empty.png`,
+                        [`${import.meta.env.BASE_URL}cover2.png`]: `${import.meta.env.BASE_URL}cover2empty.png`,
+                        [`${import.meta.env.BASE_URL}cover3.jpeg`]: `${import.meta.env.BASE_URL}cover3empty.png`,
+                        [`${import.meta.env.BASE_URL}con1.png`]: `${import.meta.env.BASE_URL}con1empty.png`,
+                        [`${import.meta.env.BASE_URL}conl2.png`]: `${import.meta.env.BASE_URL}conl2empty.png`,
+                        [`${import.meta.env.BASE_URL}awa1.png`]: `${import.meta.env.BASE_URL}awa1empty.png`,
                       };
                       const finalImage = activePreset.coverImage ? (emptyImgMap[activePreset.coverImage] || activePreset.coverImage) : "";
 
@@ -1528,12 +1528,12 @@ export default function KeyframesTab({
             <h3 className="text-sm font-bold text-white mb-4">
               {logoPromptMode === "edit" ? "修改水印元素" : "新建水印元素"}
             </h3>
-            
+
             <div className="space-y-4 mb-6">
               <div>
                 <label className="text-[10px] text-neutral-400 font-bold mb-1.5 block">上传图片</label>
-                <div 
-                  className="h-24 w-full bg-neutral-800/80 rounded-xl border border-neutral-700 hover:border-blue-500 overflow-hidden flex items-center justify-center relative cursor-pointer transition-all" 
+                <div
+                  className="h-24 w-full bg-neutral-800/80 rounded-xl border border-neutral-700 hover:border-blue-500 overflow-hidden flex items-center justify-center relative cursor-pointer transition-all"
                   onClick={() => myLogoUploadRef.current?.click()}
                 >
                   {tempLogoUrl ? (
@@ -1604,7 +1604,7 @@ export default function KeyframesTab({
             <h3 className="text-sm font-bold text-white mb-4">
               {sloganPromptMode === "edit" ? "修改营销口号" : "新建营销口号"}
             </h3>
-            
+
             <div className="space-y-4 mb-6">
               <div>
                 <label className="text-[10px] text-neutral-400 font-bold mb-1.5 block">口号内容</label>

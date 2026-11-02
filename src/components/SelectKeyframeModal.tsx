@@ -167,7 +167,7 @@ export default function SelectKeyframeModal({
                               id: `slogan_${index}`,
                               title: sloganObj.title,
                               style: "营销口号",
-                              image: "/slogan-mock.png",
+                              image: `${import.meta.env.BASE_URL}logo2.png`,
                               description: sloganObj.slogan,
                               stats: "", durationSec: 0, tags: []
                             };

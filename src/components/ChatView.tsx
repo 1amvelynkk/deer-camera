@@ -163,6 +163,13 @@ export default function ChatView({
     let active = true;
     const abortController = new AbortController();
 
+    // GitHub Pages is a static host without the Express API.
+    // Keep the existing mock aiResult in production, but allow draft initialization.
+    if (import.meta.env.PROD && !isDraftMode) {
+      setIsGenerating(false);
+      return;
+    }
+
     if (isDraftMode) {
       setIsGenerating(false);
       setExtraTurns([
@@ -220,6 +227,24 @@ export default function ChatView({
 
   const handleRefresh = async () => {
     setIsGenerating(true);
+
+    // Static production demo: simulate regeneration without calling the backend.
+    if (import.meta.env.PROD) {
+      setTimeout(() => {
+        setAiResult((prev) => ({
+          ...prev,
+          theme: prev.theme === "展现华康医药品牌特色"
+            ? "突出华康医药的专业实力与创新价值"
+            : "展现华康医药品牌特色",
+          tags: prev.tags.includes("#品牌实力")
+            ? ["#公司介绍", "#自定义", "#业务推广"]
+            : ["#品牌实力", "#科技创新", "#业务推广"],
+        }));
+        setIsGenerating(false);
+      }, 1500);
+      return;
+    }
+
     const abortController = new AbortController();
     const startTime = Date.now();
     const overallTimeoutId = setTimeout(() => abortController.abort(), 3900);
@@ -354,7 +379,7 @@ export default function ChatView({
           <div className="flex items-start gap-2 max-w-[85%]">
             {/* Logo avatar bubble */}
             <div className="w-8 h-8 shrink-0 rounded-full bg-[#1c1c1e] flex items-center justify-center shadow-3xs border border-[#3a3a3c] overflow-hidden">
-              <img src="/logo2.png" alt="logo" className="w-[85%] h-[85%] object-contain" />
+              <img src={`${import.meta.env.BASE_URL}logo2.png`} alt="logo" className="w-[85%] h-[85%] object-contain" />
             </div>
 
             <div className="bg-[#2c2c2e] px-4 py-3 rounded-2xl rounded-tl-xs shadow-sm border border-[#3a3a3c] flex items-center gap-2.5">
@@ -373,7 +398,7 @@ export default function ChatView({
           <div className="flex items-start gap-2 max-w-[85%]">
             {/* Bot Profile Avatar */}
             <div className="w-8 h-8 shrink-0 rounded-full bg-[#1c1c1e] flex items-center justify-center shadow-3xs border border-[#3a3a3c] overflow-hidden">
-              <img src="/logo2.png" alt="logo" className="w-[85%] h-[85%] object-contain" />
+              <img src={`${import.meta.env.BASE_URL}logo2.png`} alt="logo" className="w-[85%] h-[85%] object-contain" />
             </div>
 
             {/* AI Speech container card */}
@@ -633,7 +658,7 @@ export default function ChatView({
             return (
               <div key={turn.id} className="flex items-start gap-2 max-w-[85%] animate-fade-in">
                 <div className="w-8 h-8 shrink-0 rounded-full bg-[#1c1c1e] flex items-center justify-center shadow-3xs border border-[#3a3a3c] overflow-hidden">
-                  <img src="/logo2.png" alt="logo" className="w-[85%] h-[85%] object-contain" />
+                  <img src={`${import.meta.env.BASE_URL}logo2.png`} alt="logo" className="w-[85%] h-[85%] object-contain" />
                 </div>
                 <div className="bg-[#2c2c2e] px-4 py-3 rounded-2xl rounded-tl-xs shadow-sm border border-[#3a3a3c] flex items-center gap-2.5 text-left select-text">
                   {turn.isAiThinking ? (
@@ -688,7 +713,7 @@ export default function ChatView({
         {showFinalResponse && (
           <div className="flex items-start gap-2 max-w-[85%] animate-fade-in">
             <div className="w-8 h-8 shrink-0 rounded-full bg-[#1c1c1e] flex items-center justify-center shadow-3xs border border-[#3a3a3c] overflow-hidden">
-              <img src="/logo2.png" alt="logo" className="w-[85%] h-[85%] object-contain" />
+              <img src={`${import.meta.env.BASE_URL}logo2.png`} alt="logo" className="w-[85%] h-[85%] object-contain" />
             </div>
             <div className="bg-[#2c2c2e] px-4 py-3 rounded-2xl rounded-tl-xs shadow-sm border border-[#3a3a3c] flex items-center gap-2.5">
               <div className="flex flex-col min-w-[220px] w-full">
